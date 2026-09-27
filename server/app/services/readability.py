@@ -119,3 +119,7 @@ def check_document_readability(
     if name.endswith(_IMAGE_EXTENSIONS) or ctype.startswith("image"):
         return _check_image(content)
     return None
+
+
+# Earlier name, kept so existing callers and tests keep working (label defaults to "invoice").
+check_invoice_readability = check_document_readability

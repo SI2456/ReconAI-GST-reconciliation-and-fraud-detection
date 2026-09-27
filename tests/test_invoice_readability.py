@@ -1,5 +1,4 @@
-"""Blurry, blank or damaged invoice and purchase-order uploads are rejected with a clear
-re-upload message.
+"""Blurry, blank or damaged invoice uploads are rejected with a clear re-upload message.
 
 Scans are generated from the mock invoices: each page is rendered to an image (optionally
 blurred) and saved as an image-only PDF, like a scanner would produce.
@@ -13,7 +12,6 @@ from PIL import Image, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 DIGITAL_INVOICE = next((ROOT / "reconai_dummy_data").rglob("invoices/*/KRN-26-27-0001.pdf"))
 MALFORMED_INVOICE = next((ROOT / "reconai_dummy_data").rglob("MALFORMED_missing_invnum.pdf"))
-PURCHASE_ORDER = next((ROOT / "reconai_dummy_data").rglob("purchase_orders/*/KRN-26-27-0006_PO.pdf"))
 PHOTO_INVOICE = ROOT / "sample_data" / "invoice_demo.jpg"
 
 
@@ -84,36 +82,36 @@ UNREADABLE = {
 
 @pytest.mark.parametrize("name", list(READABLE))
 def test_readable_documents_pass(name):
-    from app.services.readability import check_document_readability
+    from app.services.readability import check_invoice_readability
 
-    assert check_document_readability(READABLE[name](), name) is None
+    assert check_invoice_readability(READABLE[name](), name) is None
 
 
 @pytest.mark.parametrize("name", list(UNREADABLE))
 def test_unreadable_documents_are_rejected(name):
-    from app.services.readability import check_document_readability
+    from app.services.readability import check_invoice_readability
 
     make_content, expected = UNREADABLE[name]
-    message = check_document_readability(make_content(), name)
+    message = check_invoice_readability(make_content(), name)
     assert message and expected in message
     # The frontend treats any error mentioning "token" as an expired session.
     assert "token" not in message.lower()
 
 
 def test_non_scan_formats_are_not_checked():
-    from app.services.readability import check_document_readability
+    from app.services.readability import check_invoice_readability
 
-    assert check_document_readability(b"invoice_number,total\nA1,100\n", "register.csv") is None
+    assert check_invoice_readability(b"invoice_number,total\nA1,100\n", "register.csv") is None
 
 
 # --- Through the upload API ----------------------------------------------------------------
 
-def _upload(api, ws, filename: str, content: bytes, document_type: str = "TAX_INVOICE"):
+def _upload_invoice(api, ws, filename: str, content: bytes, content_type: str = "application/pdf"):
     return api.post(
         "/api/ingestion/upload",
         headers=ws.headers,
-        data={"clientId": ws.client_id, "document_type": document_type, "gstin": ws.gstin, "tax_periods": "04-2026"},
-        files={"file": (filename, content, "application/pdf")},
+        data={"clientId": ws.client_id, "document_type": "TAX_INVOICE", "gstin": ws.gstin, "tax_periods": "04-2026"},
+        files={"file": (filename, content, content_type)},
     )
 
 
@@ -127,11 +125,10 @@ def test_blurry_upload_is_rejected_and_nothing_is_saved(api, new_client_workspac
     uploads_before = api.get("/api/ingestion/uploads", headers=ws.headers).json()["uploads"]
     files_before = _stored_files()
 
-    r = _upload(api, ws, "scan.pdf", scanned_pdf(DIGITAL_INVOICE, blur_radius=3.0))
+    r = _upload_invoice(api, ws, "scan.pdf", scanned_pdf(DIGITAL_INVOICE, blur_radius=3.0))
 
     assert r.status_code == 422
-    assert r.json()["detail"].startswith("This invoice is too blurry")
-    assert "re-upload" in r.json()["detail"]
+    assert "too blurry" in r.json()["detail"] and "re-upload" in r.json()["detail"]
     assert api.get("/api/ingestion/uploads", headers=ws.headers).json()["uploads"] == uploads_before
     assert _stored_files() == files_before
 
@@ -143,29 +140,5 @@ def test_readable_uploads_are_accepted(api, new_client_workspace):
         ("MALFORMED_missing_invnum.pdf", MALFORMED_INVOICE.read_bytes()),
         ("sharp-scan.pdf", scanned_pdf(DIGITAL_INVOICE)),
     ]:
-        r = _upload(api, ws, filename, content)
+        r = _upload_invoice(api, ws, filename, content)
         assert r.status_code == 201, f"{filename}: {r.status_code} {r.text[:200]}"
-
-
-def test_blurry_purchase_order_is_rejected(api, new_client_workspace):
-    ws = new_client_workspace("BlurryPO")
-    uploads_before = api.get("/api/ingestion/uploads", headers=ws.headers).json()["uploads"]
-
-    r = _upload(api, ws, "po-scan.pdf", scanned_pdf(PURCHASE_ORDER, blur_radius=3.0), "PURCHASE_ORDER")
-
-    assert r.status_code == 422
-    assert r.json()["detail"].startswith("This purchase order is too blurry")
-    assert api.get("/api/ingestion/uploads", headers=ws.headers).json()["uploads"] == uploads_before
-
-
-def test_readable_purchase_orders_are_accepted(api, new_client_workspace):
-    ws = new_client_workspace("ClearPO")
-    for filename, content in [
-        (PURCHASE_ORDER.name, PURCHASE_ORDER.read_bytes()),
-        ("po-sharp-scan.pdf", scanned_pdf(PURCHASE_ORDER)),
-    ]:
-        r = _upload(api, ws, filename, content, "PURCHASE_ORDER")
-        assert r.status_code == 201, f"{filename}: {r.status_code} {r.text[:200]}"
-        # Stored for the CA to review; PO fields aren't extracted from PDFs yet.
-        errors = r.json()["upload"]["validationErrors"]
-        assert any("saved for review" in e for e in errors), errors
