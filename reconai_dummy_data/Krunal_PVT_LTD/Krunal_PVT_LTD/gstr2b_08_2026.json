@@ -1,0 +1,44 @@
+{
+  "gstin_of_recipient": "27TNLBH1793I1ZX",
+  "return_period": "08-2026",
+  "generated_on": "2026-08-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27LIKJV6772N1Z6",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "KRN/26-27/0005",
+      "invoice_date": "2026-08-31",
+      "taxable_value": 129405.78,
+      "igst": 0.0,
+      "cgst": 11646.52,
+      "sgst": 11646.52,
+      "total_value": 152698.82,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "08CNAAE5746N1ZJ",
+      "supplier_name": "Lakshya Enterprises",
+      "invoice_number": "KRN/26-27/0020",
+      "invoice_date": "2026-08-19",
+      "taxable_value": 126570.4,
+      "igst": 15188.45,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 141758.85,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27KYEHP2940D1ZR",
+      "supplier_name": "Nova Digital Systems",
+      "invoice_number": "KRN/26-27/0027",
+      "invoice_date": "2026-08-06",
+      "taxable_value": 45759.84,
+      "igst": 0.0,
+      "cgst": 4118.39,
+      "sgst": 4118.39,
+      "total_value": 53996.62,
+      "itc_available": true
+    }
+  ]
+}

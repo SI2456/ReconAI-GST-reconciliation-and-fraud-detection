@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "27AAACA1234F1Z5",
+  "return_period": "04-2026",
+  "generated_on": "2026-04-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27VYSBW2576E1ZX",
+      "supplier_name": "Shreeji Plastics Industries",
+      "invoice_number": "SPE/26-27/0001",
+      "invoice_date": "2026-04-25",
+      "taxable_value": 29293.56,
+      "igst": 0.0,
+      "cgst": 1757.61,
+      "sgst": 1757.61,
+      "total_value": 32808.78,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0006",
+      "invoice_date": "2026-04-18",
+      "taxable_value": 42372.88,
+      "igst": 7627.12,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 50000.0,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27KCQPK5689V1ZR",
+      "supplier_name": "Suraksha Fabricators Pvt Ltd",
+      "invoice_number": "SPE/26-27/0011",
+      "invoice_date": "2026-04-26",
+      "taxable_value": 444229.37,
+      "igst": 0.0,
+      "cgst": 27054.04,
+      "sgst": 27054.04,
+      "total_value": 498337.45,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27RTOJN4469E1Z3",
+      "supplier_name": "Pioneer Auto Components",
+      "invoice_number": "SPE/26-27/0016",
+      "invoice_date": "2026-04-01",
+      "taxable_value": 18548.42,
+      "igst": 0.0,
+      "cgst": 1669.36,
+      "sgst": 1669.36,
+      "total_value": 21887.14,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27RTOJN4469E1Z3",
+      "supplier_name": "Pioneer Auto Components",
+      "invoice_number": "SPE/26-27/0026",
+      "invoice_date": "2026-04-15",
+      "taxable_value": 64841.28,
+      "igst": 0.0,
+      "cgst": 5835.72,
+      "sgst": 5835.72,
+      "total_value": 76512.72,
+      "itc_available": true
+    }
+  ]
+}

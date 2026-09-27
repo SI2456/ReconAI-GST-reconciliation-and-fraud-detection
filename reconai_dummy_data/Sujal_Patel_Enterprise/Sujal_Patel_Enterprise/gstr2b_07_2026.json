@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "27AAACA1234F1Z5",
+  "return_period": "07-2026",
+  "generated_on": "2026-07-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27KCQPK5689V1ZR",
+      "supplier_name": "Suraksha Fabricators Pvt Ltd",
+      "invoice_number": "SPE/26-27/0004",
+      "invoice_date": "2026-07-04",
+      "taxable_value": 15485.27,
+      "igst": 0.0,
+      "cgst": 387.13,
+      "sgst": 387.13,
+      "total_value": 16259.53,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0009",
+      "invoice_date": "2026-07-08",
+      "taxable_value": 17893.52,
+      "igst": 894.68,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 18788.2,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06XERFH7035J1Z5",
+      "supplier_name": "Amrapali Pharma Distributors",
+      "invoice_number": "SPE/26-27/0014",
+      "invoice_date": "2026-07-16",
+      "taxable_value": 192947.76,
+      "igst": 34730.6,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 227678.36,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06XERFH7035J1Z5",
+      "supplier_name": "Amrapali Pharma Distributors",
+      "invoice_number": "SPE/26-27/0019",
+      "invoice_date": "2026-07-25",
+      "taxable_value": 324682.94,
+      "igst": 58442.93,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 383125.87,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27VYSBW2576E1ZX",
+      "supplier_name": "Shreeji Plastics Industries",
+      "invoice_number": "SPE/26-27/0021",
+      "invoice_date": "2026-07-06",
+      "taxable_value": 1429683.03,
+      "igst": 0.0,
+      "cgst": 128671.47,
+      "sgst": 128671.47,
+      "total_value": 1687025.97,
+      "itc_available": true
+    }
+  ]
+}

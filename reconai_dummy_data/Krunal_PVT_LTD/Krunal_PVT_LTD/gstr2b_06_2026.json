@@ -1,0 +1,116 @@
+{
+  "gstin_of_recipient": "27TNLBH1793I1ZX",
+  "return_period": "06-2026",
+  "generated_on": "2026-06-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27WVTBH6153Y1ZE",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "KRN/26-27/0003",
+      "invoice_date": "2026-06-16",
+      "taxable_value": 545462.31,
+      "igst": 0.0,
+      "cgst": 49091.61,
+      "sgst": 49091.61,
+      "total_value": 643645.53,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27TVOCM6298S1ZD",
+      "supplier_name": "Blue Ridge Chemicals Pvt Ltd",
+      "invoice_number": "KRN/26-27/0008",
+      "invoice_date": "2026-06-15",
+      "taxable_value": 5419.14,
+      "igst": 0.0,
+      "cgst": 487.72,
+      "sgst": 487.72,
+      "total_value": 6394.58,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0013",
+      "invoice_date": "2026-06-16",
+      "taxable_value": 92854.4,
+      "igst": 15001.81,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 107856.21,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27WVTBH6153Y1ZE",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "KRN/26-27/0018",
+      "invoice_date": "2026-06-20",
+      "taxable_value": 169491.53,
+      "igst": 0.0,
+      "cgst": 15254.24,
+      "sgst": 15254.24,
+      "total_value": 200000.01,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0022",
+      "invoice_date": "2026-06-20",
+      "taxable_value": 80232.48,
+      "igst": 4011.62,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 84244.1,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0023",
+      "invoice_date": "2026-06-21",
+      "taxable_value": 16443.35,
+      "igst": 2959.8,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 19403.15,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0024",
+      "invoice_date": "2026-06-22",
+      "taxable_value": 88018.45,
+      "igst": 10562.21,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 98580.66,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0025",
+      "invoice_date": "2026-06-23",
+      "taxable_value": 286948.45,
+      "igst": 51650.72,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 338599.17,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27AAACA1234F1Z5",
+      "supplier_name": "Sujal Patel Enterprise",
+      "invoice_number": "KRN/26-27/0031",
+      "invoice_date": "2026-06-29",
+      "taxable_value": 88436.0,
+      "igst": 0.0,
+      "cgst": 7959.24,
+      "sgst": 7959.24,
+      "total_value": 104354.48,
+      "itc_available": true
+    }
+  ]
+}

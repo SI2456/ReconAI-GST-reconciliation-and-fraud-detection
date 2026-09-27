@@ -1,0 +1,32 @@
+client,invoice_number,supplier_name,supplier_gstin,invoice_date,taxable_value,total,expected_reconciliation_outcome,po_status,expected_po_match_result,malformed,malformed_defect,ml_seeded_pattern
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0001,Radiant Facility Management,36MQZBL3206S1ZD,2026-04-29,7178.86,7537.8,MISMATCH,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0002,Padmavati Textiles Ltd,29IFWTT6771W1Z1,2026-05-02,424263.73,500631.2,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0003,Vishal Electricals & Co,29FCRPN5770B1Z3,2026-06-17,339245.1,399322.44,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,AMOUNT_OUTLIER
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0004,Radiant Facility Management,36MQZBL3206S1ZD,2026-07-31,18669.81,22030.38,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0005,Amrapali Pharma Distributors,29HJCTQ5653B1ZS,2026-08-26,42372.88,50000.0,MATCHED,NONE,N/A - no PO expected (legitimate),False,,ROUND_NUMBER
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0006,Vishal Electricals & Co,29FCRPN5770B1Z3,2026-04-25,44214.36,52172.94,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,AMOUNT_OUTLIER
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0007,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-05-27,177486.72,209434.33,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0008,Vishal Electricals & Co,29FCRPN5770B1Z3,2026-06-18,84745.76,100000.0,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,AMOUNT_OUTLIER
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0009,Sunrise Packaging Co,29JAFJG0518P1ZL,2026-07-09,38869.77,44710.66,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0010,Amrapali Pharma Distributors,29HJCTQ5653B1ZS,2026-08-25,263239.26,310622.33,MISSING_IN_BOOKS,NONE,N/A - no PO expected (legitimate),False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0011,Vishal Electricals & Co,29FCRPN5770B1Z3,2026-04-20,19200.32,20160.34,MISMATCH,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0012,Ganesh Engineering Works,36DZCHK2775W1ZS,2026-05-11,98326.91,116025.75,MISSING_IN_GSTR2B,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0013,Ganesh Engineering Works,36DZCHK2775W1ZS,2026-06-08,215872.2,254729.2,MISSING_IN_GSTR2B,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0014,Radiant Facility Management,36MQZBL3206S1ZD,2026-07-20,180112.07,212532.24,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0015,Radiant Facility Management,36MQZBL3206S1ZD,2026-08-10,464037.31,547564.03,MATCHED,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0016,Amrapali Pharma Distributors,29HJCTQ5653B1ZS,2026-04-27,410528.63,460410.77,MISMATCH,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0017,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-05-07,63559.32,75000.0,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,ROUND_NUMBER
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0018,Ganesh Engineering Works,36DZCHK2775W1ZS,2026-06-16,355969.95,398686.34,MISMATCH,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0019,Padmavati Textiles Ltd,29IFWTT6771W1Z1,2026-07-08,785611.84,927021.97,DUPLICATE,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0020,Zenith Office Solutions,06TBFGT5513J1ZI,2026-08-10,224097.72,264435.31,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0021,Vishal Electricals & Co,29FCRPN5770B1Z3,2026-07-02,1430953.92,1688525.63,MATCHED,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,AMOUNT_OUTLIER_SPIKE
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0022,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-06-10,5629.95,6643.34,MATCHED,NONE,N/A - no PO expected (legitimate),False,,FREQUENCY_BURST
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0023,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-06-11,62383.6,73612.65,MATCHED,NONE,N/A - no PO expected (legitimate),False,,FREQUENCY_BURST
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0024,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-06-12,19960.14,23552.97,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,FREQUENCY_BURST
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0025,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,2026-06-13,105058.8,123969.38,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0026,Sunrise Packaging Co,29JAFJG0518P1ZL,2026-04-01,354982.6,397580.51,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,DORMANT_REACTIVATED
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0027,Sunrise Packaging Co,29JAFJG0518P1ZL,2026-08-11,5331.15,5597.71,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,DORMANT_REACTIVATED
+Vantage Retail Solutions Pvt Ltd,(BLANK - malformed),Zenith Office Solutions,06TBFGT5513J1ZI,2026-04-18,111521.62,131595.51,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_invnum,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0028,Trident Logistics Pvt Ltd,27QANJN7318N1ZV,(BLANK - malformed),34022.28,35723.39,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_date,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0029,Padmavati Textiles Ltd,,2026-08-23,190701.75,213585.96,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_gstin,
+Vantage Retail Solutions Pvt Ltd,VRS/26-27/0031,Krunal PVT LTD,27TNLBH1793I1ZX,2026-06-14,66432.96,78390.89,MATCHED,NONE,N/A - no PO expected (legitimate),False,,GLOBAL_CIRCULAR_TRADING_RING

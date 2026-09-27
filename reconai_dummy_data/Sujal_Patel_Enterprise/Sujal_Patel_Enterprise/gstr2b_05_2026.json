@@ -1,0 +1,44 @@
+{
+  "gstin_of_recipient": "27AAACA1234F1Z5",
+  "return_period": "05-2026",
+  "generated_on": "2026-05-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "29CBATU7966X1ZR",
+      "supplier_name": "Padmavati Textiles Ltd",
+      "invoice_number": "SPE/26-27/0002",
+      "invoice_date": "2026-05-19",
+      "taxable_value": 42372.88,
+      "igst": 7627.12,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 50000.0,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27RTOJN4469E1Z3",
+      "supplier_name": "Pioneer Auto Components",
+      "invoice_number": "SPE/26-27/0007",
+      "invoice_date": "2026-05-31",
+      "taxable_value": 18478.11,
+      "igst": 0.0,
+      "cgst": 1663.03,
+      "sgst": 1663.03,
+      "total_value": 21804.17,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07DKMAI0867Y1ZS",
+      "supplier_name": "Saraswati Print & Publications",
+      "invoice_number": "SPE/26-27/0012",
+      "invoice_date": "2026-05-13",
+      "taxable_value": 80323.32,
+      "igst": 14458.2,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 94781.52,
+      "itc_available": true
+    }
+  ]
+}

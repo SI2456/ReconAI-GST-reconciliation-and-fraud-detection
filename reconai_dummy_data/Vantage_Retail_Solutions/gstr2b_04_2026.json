@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "29SUNLL2935L1ZP",
+  "return_period": "04-2026",
+  "generated_on": "2026-04-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "36MQZBL3206S1ZD",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "VRS/26-27/0001",
+      "invoice_date": "2026-04-29",
+      "taxable_value": 5700.91,
+      "igst": 285.05,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 5985.96,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29FCRPN5770B1Z3",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "VRS/26-27/0006",
+      "invoice_date": "2026-04-25",
+      "taxable_value": 44214.36,
+      "igst": 0.0,
+      "cgst": 3979.29,
+      "sgst": 3979.29,
+      "total_value": 52172.94,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29FCRPN5770B1Z3",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "VRS/26-27/0011",
+      "invoice_date": "2026-04-20",
+      "taxable_value": 15224.91,
+      "igst": 0.0,
+      "cgst": 380.62,
+      "sgst": 380.62,
+      "total_value": 15986.15,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29HJCTQ5653B1ZS",
+      "supplier_name": "Amrapali Pharma Distributors",
+      "invoice_number": "VRS/26-27/0016",
+      "invoice_date": "2026-04-27",
+      "taxable_value": 327422.09,
+      "igst": 0.0,
+      "cgst": 19645.33,
+      "sgst": 19645.33,
+      "total_value": 366712.75,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29JAFJG0518P1ZL",
+      "supplier_name": "Sunrise Packaging Co",
+      "invoice_number": "VRS/26-27/0026",
+      "invoice_date": "2026-04-01",
+      "taxable_value": 354982.6,
+      "igst": 0.0,
+      "cgst": 21298.96,
+      "sgst": 21298.96,
+      "total_value": 397580.52,
+      "itc_available": true
+    }
+  ]
+}

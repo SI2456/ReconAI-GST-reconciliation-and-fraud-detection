@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "29SUNLL2935L1ZP",
+  "return_period": "08-2026",
+  "generated_on": "2026-08-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "29HJCTQ5653B1ZS",
+      "supplier_name": "Amrapali Pharma Distributors",
+      "invoice_number": "VRS/26-27/0005",
+      "invoice_date": "2026-08-26",
+      "taxable_value": 42372.88,
+      "igst": 0.0,
+      "cgst": 3813.56,
+      "sgst": 3813.56,
+      "total_value": 50000.0,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29HJCTQ5653B1ZS",
+      "supplier_name": "Amrapali Pharma Distributors",
+      "invoice_number": "VRS/26-27/0010",
+      "invoice_date": "2026-08-25",
+      "taxable_value": 263239.26,
+      "igst": 0.0,
+      "cgst": 23691.53,
+      "sgst": 23691.53,
+      "total_value": 310622.32,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36MQZBL3206S1ZD",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "VRS/26-27/0015",
+      "invoice_date": "2026-08-10",
+      "taxable_value": 464037.31,
+      "igst": 83526.72,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 547564.03,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06TBFGT5513J1ZI",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "VRS/26-27/0020",
+      "invoice_date": "2026-08-10",
+      "taxable_value": 224097.72,
+      "igst": 40337.59,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 264435.31,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29JAFJG0518P1ZL",
+      "supplier_name": "Sunrise Packaging Co",
+      "invoice_number": "VRS/26-27/0027",
+      "invoice_date": "2026-08-11",
+      "taxable_value": 5331.15,
+      "igst": 0.0,
+      "cgst": 133.28,
+      "sgst": 133.28,
+      "total_value": 5597.71,
+      "itc_available": true
+    }
+  ]
+}

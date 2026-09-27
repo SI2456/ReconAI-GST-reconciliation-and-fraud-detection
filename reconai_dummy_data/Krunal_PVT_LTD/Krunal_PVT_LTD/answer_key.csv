@@ -1,0 +1,32 @@
+client,invoice_number,supplier_name,supplier_gstin,invoice_date,taxable_value,total,expected_reconciliation_outcome,po_status,expected_po_match_result,malformed,malformed_defect,ml_seeded_pattern
+Krunal PVT LTD,KRN/26-27/0001,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-04-16,433429.2,511446.46,MISMATCH,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Krunal PVT LTD,KRN/26-27/0002,Nova Digital Systems,27KYEHP2940D1ZR,2026-05-11,169491.53,200000.01,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,ROUND_NUMBER
+Krunal PVT LTD,KRN/26-27/0003,Radiant Facility Management,27WVTBH6153Y1ZE,2026-06-16,545462.31,643645.53,DUPLICATE,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Krunal PVT LTD,KRN/26-27/0004,Saraswati Print & Publications,06YSQGE0125K1ZQ,2026-07-09,91286.55,95850.88,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0005,Coral Bay IT Services,27LIKJV6772N1Z6,2026-08-31,129405.78,152698.82,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,AMOUNT_OUTLIER
+Krunal PVT LTD,KRN/26-27/0006,Nova Digital Systems,27KYEHP2940D1ZR,2026-04-28,357649.97,422026.96,MISMATCH,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0007,Saraswati Print & Publications,06YSQGE0125K1ZQ,2026-05-01,54684.22,60837.86,MISMATCH,NONE,N/A - no PO expected (legitimate),False,,
+Krunal PVT LTD,KRN/26-27/0008,Blue Ridge Chemicals Pvt Ltd,27TVOCM6298S1ZD,2026-06-15,5419.14,6394.59,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0009,Saraswati Print & Publications,06YSQGE0125K1ZQ,2026-07-10,120091.08,141707.47,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0010,Coral Bay IT Services,27LIKJV6772N1Z6,2026-08-14,208773.45,234591.09,MISSING_IN_GSTR2B,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0011,Blue Ridge Chemicals Pvt Ltd,27TVOCM6298S1ZD,2026-04-22,307355.6,347329.69,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Krunal PVT LTD,KRN/26-27/0012,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-05-07,294026.54,346951.32,MISMATCH,NONE,N/A - no PO expected (legitimate),False,,
+Krunal PVT LTD,KRN/26-27/0013,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-06-16,92854.4,107856.21,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Krunal PVT LTD,KRN/26-27/0014,Radiant Facility Management,27WVTBH6153Y1ZE,2026-07-05,169491.53,200000.01,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,ROUND_NUMBER
+Krunal PVT LTD,KRN/26-27/0015,Lakshya Enterprises,08CNAAE5746N1ZJ,2026-08-19,405151.05,458123.12,MISSING_IN_GSTR2B,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Krunal PVT LTD,KRN/26-27/0016,Coral Bay IT Services,27LIKJV6772N1Z6,2026-04-01,212357.37,250581.7,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,AMOUNT_OUTLIER
+Krunal PVT LTD,KRN/26-27/0017,Saraswati Print & Publications,06YSQGE0125K1ZQ,2026-05-10,14083.79,16618.87,MATCHED,NONE,N/A - no PO expected (legitimate),False,,
+Krunal PVT LTD,KRN/26-27/0018,Radiant Facility Management,27WVTBH6153Y1ZE,2026-06-20,169491.53,200000.01,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,ROUND_NUMBER
+Krunal PVT LTD,KRN/26-27/0019,Horizon Consulting Group,08AYSTA2755W1Z5,2026-07-31,171815.23,202741.97,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Krunal PVT LTD,KRN/26-27/0020,Lakshya Enterprises,08CNAAE5746N1ZJ,2026-08-19,126570.4,141758.85,MISSING_IN_BOOKS,NONE,N/A - no PO expected (legitimate),False,,
+Krunal PVT LTD,KRN/26-27/0021,Coral Bay IT Services,27LIKJV6772N1Z6,2026-07-03,2140044.57,2488525.51,MATCHED,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,AMOUNT_OUTLIER_SPIKE
+Krunal PVT LTD,KRN/26-27/0022,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-06-20,80232.48,84244.1,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Krunal PVT LTD,KRN/26-27/0023,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-06-21,16443.35,19403.15,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Krunal PVT LTD,KRN/26-27/0024,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-06-22,88018.45,98580.66,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Krunal PVT LTD,KRN/26-27/0025,Vishal Electricals & Co,07LXDHH5971Z1ZH,2026-06-23,286948.45,338599.17,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Krunal PVT LTD,KRN/26-27/0026,Nova Digital Systems,27KYEHP2940D1ZR,2026-04-17,23832.63,25024.26,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,DORMANT_REACTIVATED
+Krunal PVT LTD,KRN/26-27/0027,Nova Digital Systems,27KYEHP2940D1ZR,2026-08-06,45759.84,53996.61,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,DORMANT_REACTIVATED
+Krunal PVT LTD,(BLANK - malformed),Nova Digital Systems,27KYEHP2940D1ZR,2026-05-26,11490.95,13559.32,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_invnum,
+Krunal PVT LTD,KRN/26-27/0028,Nova Digital Systems,27KYEHP2940D1ZR,(BLANK - malformed),341674.4,403175.79,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_date,
+Krunal PVT LTD,KRN/26-27/0029,Lakshya Enterprises,,2026-08-10,130065.81,145673.71,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_gstin,
+Krunal PVT LTD,KRN/26-27/0031,Sujal Patel Enterprise,27AAACA1234F1Z5,2026-06-29,88436.0,104354.48,MATCHED,NONE,N/A - no PO expected (legitimate),False,,GLOBAL_CIRCULAR_TRADING_RING

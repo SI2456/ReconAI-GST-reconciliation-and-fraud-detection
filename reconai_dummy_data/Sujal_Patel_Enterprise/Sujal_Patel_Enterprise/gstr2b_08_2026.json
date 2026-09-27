@@ -1,0 +1,56 @@
+{
+  "gstin_of_recipient": "27AAACA1234F1Z5",
+  "return_period": "08-2026",
+  "generated_on": "2026-08-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27PBZJQ4930A1ZA",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "SPE/26-27/0010",
+      "invoice_date": "2026-08-10",
+      "taxable_value": 156950.36,
+      "igst": 0.0,
+      "cgst": 14125.53,
+      "sgst": 14125.53,
+      "total_value": 185201.42,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27PBZJQ4930A1ZA",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "SPE/26-27/0015",
+      "invoice_date": "2026-08-29",
+      "taxable_value": 169491.53,
+      "igst": 0.0,
+      "cgst": 15254.24,
+      "sgst": 15254.24,
+      "total_value": 200000.01,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29CBATU7966X1ZR",
+      "supplier_name": "Padmavati Textiles Ltd",
+      "invoice_number": "SPE/26-27/0020",
+      "invoice_date": "2026-08-03",
+      "taxable_value": 447978.61,
+      "igst": 78678.2,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 526656.81,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27RTOJN4469E1Z3",
+      "supplier_name": "Pioneer Auto Components",
+      "invoice_number": "SPE/26-27/0027",
+      "invoice_date": "2026-08-18",
+      "taxable_value": 21919.28,
+      "igst": 0.0,
+      "cgst": 1972.74,
+      "sgst": 1972.74,
+      "total_value": 25864.76,
+      "itc_available": true
+    }
+  ]
+}

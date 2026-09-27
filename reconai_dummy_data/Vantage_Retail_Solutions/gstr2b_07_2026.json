@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "29SUNLL2935L1ZP",
+  "return_period": "07-2026",
+  "generated_on": "2026-07-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "36MQZBL3206S1ZD",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "VRS/26-27/0004",
+      "invoice_date": "2026-07-31",
+      "taxable_value": 18669.81,
+      "igst": 3360.57,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 22030.38,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29JAFJG0518P1ZL",
+      "supplier_name": "Sunrise Packaging Co",
+      "invoice_number": "VRS/26-27/0009",
+      "invoice_date": "2026-07-09",
+      "taxable_value": 38869.77,
+      "igst": 0.0,
+      "cgst": 2920.45,
+      "sgst": 2920.45,
+      "total_value": 44710.67,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36MQZBL3206S1ZD",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "VRS/26-27/0014",
+      "invoice_date": "2026-07-20",
+      "taxable_value": 180112.07,
+      "igst": 32420.17,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 212532.24,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29IFWTT6771W1Z1",
+      "supplier_name": "Padmavati Textiles Ltd",
+      "invoice_number": "VRS/26-27/0019",
+      "invoice_date": "2026-07-08",
+      "taxable_value": 785611.84,
+      "igst": 0.0,
+      "cgst": 70705.07,
+      "sgst": 70705.07,
+      "total_value": 927021.98,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29FCRPN5770B1Z3",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "VRS/26-27/0021",
+      "invoice_date": "2026-07-02",
+      "taxable_value": 1430953.92,
+      "igst": 0.0,
+      "cgst": 128785.85,
+      "sgst": 128785.85,
+      "total_value": 1688525.62,
+      "itc_available": true
+    }
+  ]
+}

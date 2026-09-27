@@ -1,0 +1,44 @@
+{
+  "gstin_of_recipient": "29SUNLL2935L1ZP",
+  "return_period": "05-2026",
+  "generated_on": "2026-05-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "29IFWTT6771W1Z1",
+      "supplier_name": "Padmavati Textiles Ltd",
+      "invoice_number": "VRS/26-27/0002",
+      "invoice_date": "2026-05-02",
+      "taxable_value": 424263.73,
+      "igst": 0.0,
+      "cgst": 38183.74,
+      "sgst": 38183.74,
+      "total_value": 500631.21,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0007",
+      "invoice_date": "2026-05-27",
+      "taxable_value": 177486.72,
+      "igst": 31947.61,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 209434.33,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0017",
+      "invoice_date": "2026-05-07",
+      "taxable_value": 63559.32,
+      "igst": 11440.68,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 75000.0,
+      "itc_available": true
+    }
+  ]
+}

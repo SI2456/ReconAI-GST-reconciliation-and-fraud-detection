@@ -1,0 +1,116 @@
+{
+  "gstin_of_recipient": "27AAACA1234F1Z5",
+  "return_period": "06-2026",
+  "generated_on": "2026-06-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27VYSBW2576E1ZX",
+      "supplier_name": "Shreeji Plastics Industries",
+      "invoice_number": "SPE/26-27/0003",
+      "invoice_date": "2026-06-28",
+      "taxable_value": 475527.08,
+      "igst": 0.0,
+      "cgst": 42797.44,
+      "sgst": 42797.44,
+      "total_value": 561121.96,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27KCQPK5689V1ZR",
+      "supplier_name": "Suraksha Fabricators Pvt Ltd",
+      "invoice_number": "SPE/26-27/0008",
+      "invoice_date": "2026-06-05",
+      "taxable_value": 140927.52,
+      "igst": 0.0,
+      "cgst": 12683.48,
+      "sgst": 12683.48,
+      "total_value": 166294.48,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27PBZJQ4930A1ZA",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "SPE/26-27/0013",
+      "invoice_date": "2026-06-28",
+      "taxable_value": 21136.83,
+      "igst": 0.0,
+      "cgst": 1268.21,
+      "sgst": 1268.21,
+      "total_value": 23673.25,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27RTOJN4469E1Z3",
+      "supplier_name": "Pioneer Auto Components",
+      "invoice_number": "SPE/26-27/0018",
+      "invoice_date": "2026-06-26",
+      "taxable_value": 17820.6,
+      "igst": 0.0,
+      "cgst": 1603.85,
+      "sgst": 1603.85,
+      "total_value": 21028.3,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0022",
+      "invoice_date": "2026-06-19",
+      "taxable_value": 12464.94,
+      "igst": 2243.69,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 14708.63,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0023",
+      "invoice_date": "2026-06-20",
+      "taxable_value": 13662.33,
+      "igst": 2459.22,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 16121.55,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0024",
+      "invoice_date": "2026-06-21",
+      "taxable_value": 11272.17,
+      "igst": 2028.99,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 13301.16,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36VLBTB6328Z1ZK",
+      "supplier_name": "Zenith Office Solutions",
+      "invoice_number": "SPE/26-27/0025",
+      "invoice_date": "2026-06-22",
+      "taxable_value": 1213.37,
+      "igst": 218.41,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 1431.78,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29SUNLL2935L1ZP",
+      "supplier_name": "Vantage Retail Solutions Pvt Ltd",
+      "invoice_number": "SPE/26-27/0031",
+      "invoice_date": "2026-06-09",
+      "taxable_value": 166848.21,
+      "igst": 30032.68,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 196880.89,
+      "itc_available": true
+    }
+  ]
+}

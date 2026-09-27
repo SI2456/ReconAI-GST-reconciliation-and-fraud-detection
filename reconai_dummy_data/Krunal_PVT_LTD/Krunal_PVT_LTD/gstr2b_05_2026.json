@@ -1,0 +1,56 @@
+{
+  "gstin_of_recipient": "27TNLBH1793I1ZX",
+  "return_period": "05-2026",
+  "generated_on": "2026-05-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "27KYEHP2940D1ZR",
+      "supplier_name": "Nova Digital Systems",
+      "invoice_number": "KRN/26-27/0002",
+      "invoice_date": "2026-05-11",
+      "taxable_value": 169491.53,
+      "igst": 0.0,
+      "cgst": 15254.24,
+      "sgst": 15254.24,
+      "total_value": 200000.01,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06YSQGE0125K1ZQ",
+      "supplier_name": "Saraswati Print & Publications",
+      "invoice_number": "KRN/26-27/0007",
+      "invoice_date": "2026-05-01",
+      "taxable_value": 45018.11,
+      "igst": 2250.91,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 47269.02,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0012",
+      "invoice_date": "2026-05-07",
+      "taxable_value": 216992.03,
+      "igst": 39058.57,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 256050.6,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06YSQGE0125K1ZQ",
+      "supplier_name": "Saraswati Print & Publications",
+      "invoice_number": "KRN/26-27/0017",
+      "invoice_date": "2026-05-10",
+      "taxable_value": 14083.79,
+      "igst": 2535.08,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 16618.87,
+      "itc_available": true
+    }
+  ]
+}

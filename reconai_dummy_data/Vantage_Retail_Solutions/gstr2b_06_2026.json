@@ -1,0 +1,104 @@
+{
+  "gstin_of_recipient": "29SUNLL2935L1ZP",
+  "return_period": "06-2026",
+  "generated_on": "2026-06-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "29FCRPN5770B1Z3",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "VRS/26-27/0003",
+      "invoice_date": "2026-06-17",
+      "taxable_value": 339245.1,
+      "igst": 0.0,
+      "cgst": 30038.67,
+      "sgst": 30038.67,
+      "total_value": 399322.44,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29FCRPN5770B1Z3",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "VRS/26-27/0008",
+      "invoice_date": "2026-06-18",
+      "taxable_value": 84745.76,
+      "igst": 0.0,
+      "cgst": 7627.12,
+      "sgst": 7627.12,
+      "total_value": 100000.0,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "36DZCHK2775W1ZS",
+      "supplier_name": "Ganesh Engineering Works",
+      "invoice_number": "VRS/26-27/0018",
+      "invoice_date": "2026-06-16",
+      "taxable_value": 281992.07,
+      "igst": 33839.05,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 315831.12,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0022",
+      "invoice_date": "2026-06-10",
+      "taxable_value": 5629.95,
+      "igst": 1013.39,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 6643.34,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0023",
+      "invoice_date": "2026-06-11",
+      "taxable_value": 62383.6,
+      "igst": 11229.05,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 73612.65,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0024",
+      "invoice_date": "2026-06-12",
+      "taxable_value": 19960.14,
+      "igst": 3592.83,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 23552.97,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27QANJN7318N1ZV",
+      "supplier_name": "Trident Logistics Pvt Ltd",
+      "invoice_number": "VRS/26-27/0025",
+      "invoice_date": "2026-06-13",
+      "taxable_value": 105058.8,
+      "igst": 18910.58,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 123969.38,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27TNLBH1793I1ZX",
+      "supplier_name": "Krunal PVT LTD",
+      "invoice_number": "VRS/26-27/0031",
+      "invoice_date": "2026-06-14",
+      "taxable_value": 66432.96,
+      "igst": 11957.93,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 78390.89,
+      "itc_available": true
+    }
+  ]
+}

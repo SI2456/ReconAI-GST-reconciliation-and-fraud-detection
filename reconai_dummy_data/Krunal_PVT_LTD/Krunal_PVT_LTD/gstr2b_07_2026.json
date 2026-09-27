@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "27TNLBH1793I1ZX",
+  "return_period": "07-2026",
+  "generated_on": "2026-07-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "06YSQGE0125K1ZQ",
+      "supplier_name": "Saraswati Print & Publications",
+      "invoice_number": "KRN/26-27/0004",
+      "invoice_date": "2026-07-09",
+      "taxable_value": 91286.55,
+      "igst": 4564.33,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 95850.88,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "06YSQGE0125K1ZQ",
+      "supplier_name": "Saraswati Print & Publications",
+      "invoice_number": "KRN/26-27/0009",
+      "invoice_date": "2026-07-10",
+      "taxable_value": 120091.08,
+      "igst": 21616.39,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 141707.47,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27WVTBH6153Y1ZE",
+      "supplier_name": "Radiant Facility Management",
+      "invoice_number": "KRN/26-27/0014",
+      "invoice_date": "2026-07-05",
+      "taxable_value": 169491.53,
+      "igst": 0.0,
+      "cgst": 15254.24,
+      "sgst": 15254.24,
+      "total_value": 200000.01,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "08AYSTA2755W1Z5",
+      "supplier_name": "Horizon Consulting Group",
+      "invoice_number": "KRN/26-27/0019",
+      "invoice_date": "2026-07-31",
+      "taxable_value": 171815.23,
+      "igst": 30926.74,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 202741.97,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27LIKJV6772N1Z6",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "KRN/26-27/0021",
+      "invoice_date": "2026-07-03",
+      "taxable_value": 2140044.57,
+      "igst": 0.0,
+      "cgst": 174240.47,
+      "sgst": 174240.47,
+      "total_value": 2488525.51,
+      "itc_available": true
+    }
+  ]
+}

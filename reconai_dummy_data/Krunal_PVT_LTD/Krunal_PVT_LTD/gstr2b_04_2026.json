@@ -1,0 +1,68 @@
+{
+  "gstin_of_recipient": "27TNLBH1793I1ZX",
+  "return_period": "04-2026",
+  "generated_on": "2026-04-28",
+  "source": "SIMULATED_GST_DATA - for testing purposes only",
+  "documents": [
+    {
+      "supplier_gstin": "07LXDHH5971Z1ZH",
+      "supplier_name": "Vishal Electricals & Co",
+      "invoice_number": "KRN/26-27/0001",
+      "invoice_date": "2026-04-16",
+      "taxable_value": 325477.96,
+      "igst": 58586.03,
+      "cgst": 0.0,
+      "sgst": 0.0,
+      "total_value": 384063.99,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27KYEHP2940D1ZR",
+      "supplier_name": "Nova Digital Systems",
+      "invoice_number": "KRN/26-27/0006",
+      "invoice_date": "2026-04-28",
+      "taxable_value": 252928.87,
+      "igst": 0.0,
+      "cgst": 22763.6,
+      "sgst": 22763.6,
+      "total_value": 298456.07,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27TVOCM6298S1ZD",
+      "supplier_name": "Blue Ridge Chemicals Pvt Ltd",
+      "invoice_number": "KRN/26-27/0011",
+      "invoice_date": "2026-04-22",
+      "taxable_value": 307355.6,
+      "igst": 0.0,
+      "cgst": 19987.04,
+      "sgst": 19987.04,
+      "total_value": 347329.68,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27LIKJV6772N1Z6",
+      "supplier_name": "Coral Bay IT Services",
+      "invoice_number": "KRN/26-27/0016",
+      "invoice_date": "2026-04-01",
+      "taxable_value": 212357.37,
+      "igst": 0.0,
+      "cgst": 19112.16,
+      "sgst": 19112.16,
+      "total_value": 250581.69,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "27KYEHP2940D1ZR",
+      "supplier_name": "Nova Digital Systems",
+      "invoice_number": "KRN/26-27/0026",
+      "invoice_date": "2026-04-17",
+      "taxable_value": 23832.63,
+      "igst": 0.0,
+      "cgst": 595.82,
+      "sgst": 595.82,
+      "total_value": 25024.27,
+      "itc_available": true
+    }
+  ]
+}

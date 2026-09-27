@@ -201,6 +201,23 @@ All standard workflows can be run using `npm` from the project root:
 | `npm run db:check` | Tests connectivity to the configured database |
 | `npm run backend:seed` | Seeds demo clients, invoices, supplier master, and reconciliation runs |
 | `npm run build` | Builds the production frontend bundle in `dist/` |
+| `npm test` | Runs the reconciliation tests against the mock datasets' answer keys |
+
+---
+
+## 🧪 Running Tests
+
+`tests/test_answer_key.py` uploads each mock company in `reconai_dummy_data/` through the API, runs reconciliation, and checks every invoice's status against that company's `answer_key.csv`. It also checks that the document details view shows the GSTR-2B record reconciliation actually paired. It uses a throwaway SQLite database, so your `server/.env` database and `server/data/` are never touched.
+
+```bash
+# One-time: install pytest into the backend virtual environment
+server\.venv\Scripts\python.exe -m pip install -r server/requirements-dev.txt
+
+# Run the tests (from the project root)
+npm test
+```
+
+A new mock company is picked up automatically: add a folder with `answer_key.csv`, `purchase_register.csv` and `gstr2b_MM_YYYY.json` files.
 
 ---
 

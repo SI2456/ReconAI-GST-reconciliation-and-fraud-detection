@@ -1,0 +1,19 @@
+.env
+server/.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+server/.venv/
+node_modules/
+dist/
+*.zip
+server.zip
+
+# Local databases and user-uploaded documents (may contain personal data)
+*.sqlite3
+*.sqlite3.backup_*
+*.db
+server/data/uploads/
+server/data/db.json
+server/server/

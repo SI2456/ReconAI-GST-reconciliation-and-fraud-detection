@@ -1,0 +1,32 @@
+client,invoice_number,supplier_name,supplier_gstin,invoice_date,taxable_value,total,expected_reconciliation_outcome,po_status,expected_po_match_result,malformed,malformed_defect,ml_seeded_pattern
+Sujal Patel Enterprise,SPE/26-27/0001,Shreeji Plastics Industries,27VYSBW2576E1ZX,2026-04-25,29293.56,32808.79,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,AMOUNT_OUTLIER
+Sujal Patel Enterprise,SPE/26-27/0002,Padmavati Textiles Ltd,29CBATU7966X1ZR,2026-05-19,42372.88,50000.0,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,ROUND_NUMBER
+Sujal Patel Enterprise,SPE/26-27/0003,Shreeji Plastics Industries,27VYSBW2576E1ZX,2026-06-28,648116.98,764778.04,MISMATCH,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Sujal Patel Enterprise,SPE/26-27/0004,Suraksha Fabricators Pvt Ltd,27KCQPK5689V1ZR,2026-07-04,20349.3,21366.76,MISMATCH,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0005,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-08-16,330472.49,389957.54,MISSING_IN_GSTR2B,NONE,N/A - no PO expected (legitimate),False,,
+Sujal Patel Enterprise,SPE/26-27/0006,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-04-18,42372.88,50000.0,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,ROUND_NUMBER
+Sujal Patel Enterprise,SPE/26-27/0007,Pioneer Auto Components,27RTOJN4469E1Z3,2026-05-31,18478.11,21804.17,MISSING_IN_BOOKS,NONE,N/A - no PO expected (legitimate),False,,
+Sujal Patel Enterprise,SPE/26-27/0008,Suraksha Fabricators Pvt Ltd,27KCQPK5689V1ZR,2026-06-05,140927.52,166294.47,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,
+Sujal Patel Enterprise,SPE/26-27/0009,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-07-08,17893.52,18788.2,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0010,Coral Bay IT Services,27PBZJQ4930A1ZA,2026-08-10,156950.36,185201.42,DUPLICATE,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0011,Suraksha Fabricators Pvt Ltd,27KCQPK5689V1ZR,2026-04-26,444229.37,498337.45,MATCHED,NONE,N/A - no PO expected (legitimate),False,,
+Sujal Patel Enterprise,SPE/26-27/0012,Saraswati Print & Publications,07DKMAI0867Y1ZS,2026-05-13,80323.32,94781.52,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0013,Coral Bay IT Services,27PBZJQ4930A1ZA,2026-06-28,21136.83,23673.25,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0014,Amrapali Pharma Distributors,06XERFH7035J1Z5,2026-07-16,192947.76,227678.36,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0015,Coral Bay IT Services,27PBZJQ4930A1ZA,2026-08-29,169491.53,200000.01,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,ROUND_NUMBER
+Sujal Patel Enterprise,SPE/26-27/0016,Pioneer Auto Components,27RTOJN4469E1Z3,2026-04-01,23897.62,28199.19,MISMATCH,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0017,Suraksha Fabricators Pvt Ltd,27KCQPK5689V1ZR,2026-05-09,192486.66,226466.4,MISSING_IN_GSTR2B,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0018,Pioneer Auto Components,27RTOJN4469E1Z3,2026-06-26,17820.6,21028.31,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0019,Amrapali Pharma Distributors,06XERFH7035J1Z5,2026-07-25,456496.36,538665.7,MISMATCH,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,
+Sujal Patel Enterprise,SPE/26-27/0020,Padmavati Textiles Ltd,29CBATU7966X1ZR,2026-08-03,447978.61,526656.81,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,
+Sujal Patel Enterprise,SPE/26-27/0021,Shreeji Plastics Industries,27VYSBW2576E1ZX,2026-07-06,1429683.03,1687025.98,MATCHED,EXPECTED_BUT_MISSING,"High-value transaction with NO PO on file - expect a genuine compliance flag, not 'Not Applicable'",False,,AMOUNT_OUTLIER_SPIKE
+Sujal Patel Enterprise,SPE/26-27/0022,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-06-19,12464.94,14708.63,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Sujal Patel Enterprise,SPE/26-27/0023,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-06-20,13662.33,16121.55,MATCHED,CLEAN_MATCH,PO matches invoice - expect PASS,False,,FREQUENCY_BURST
+Sujal Patel Enterprise,SPE/26-27/0024,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-06-21,11272.17,13301.16,MATCHED,NONE,N/A - no PO expected (legitimate),False,,FREQUENCY_BURST
+Sujal Patel Enterprise,SPE/26-27/0025,Zenith Office Solutions,36VLBTB6328Z1ZK,2026-06-22,1213.37,1431.78,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,FREQUENCY_BURST
+Sujal Patel Enterprise,SPE/26-27/0026,Pioneer Auto Components,27RTOJN4469E1Z3,2026-04-15,64841.28,76512.71,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,DORMANT_REACTIVATED
+Sujal Patel Enterprise,SPE/26-27/0027,Pioneer Auto Components,27RTOJN4469E1Z3,2026-08-18,21919.28,25864.75,MATCHED,MISMATCH,PO differs from invoice - expect FAIL/anomaly,False,,DORMANT_REACTIVATED
+Sujal Patel Enterprise,(BLANK - malformed),Suraksha Fabricators Pvt Ltd,27KCQPK5689V1ZR,2026-05-20,28235.08,29646.83,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_invnum,
+Sujal Patel Enterprise,SPE/26-27/0028,Pioneer Auto Components,27RTOJN4469E1Z3,(BLANK - malformed),29379.15,34667.4,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_date,
+Sujal Patel Enterprise,SPE/26-27/0029,Amrapali Pharma Distributors,,2026-08-07,5291.1,6243.5,NOT_RUN,NONE,N/A - no PO expected (legitimate),True,missing_gstin,
+Sujal Patel Enterprise,SPE/26-27/0031,Vantage Retail Solutions Pvt Ltd,29SUNLL2935L1ZP,2026-06-09,166848.21,196880.89,MATCHED,NONE,N/A - no PO expected (legitimate),False,,GLOBAL_CIRCULAR_TRADING_RING
