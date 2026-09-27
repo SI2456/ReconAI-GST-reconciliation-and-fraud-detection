@@ -513,15 +513,27 @@ def parse_purchase_order(
         except Exception as exc:
             return [], [f"Could not parse JSON Purchase Order: {exc}"]
 
+    # Scanned or PDF purchase orders are stored for review, but there is no PO field extractor
+    # for them yet. (Reading them as CSV below used to crash the upload.)
+    if name.endswith((".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"))             or "pdf" in content_type or content_type.startswith("image") or content[:5] == b"%PDF-":
+        return [], [
+            "Purchase order saved for review. Its fields can't be extracted automatically from a PDF "
+            "or image yet; upload the PO as CSV or JSON to include it in 3-way matching."
+        ]
+
     # CSV / TSV fallback
     text = content.decode("utf-8-sig", errors="replace")
-    reader = csv.DictReader(io.StringIO(text))
-    if not reader.fieldnames:
-        return [], ["Purchase Order file is empty or missing headers."]
+    try:
+        reader = csv.DictReader(io.StringIO(text))
+        if not reader.fieldnames:
+            return [], ["Purchase Order file is empty or missing headers."]
+        records = list(reader)
+    except csv.Error as exc:
+        return [], [f"Could not read the Purchase Order as CSV: {exc}"]
 
     header_map = _build_header_map(list(reader.fieldnames), _PO_COLUMN_SYNONYMS)
     rows = []
-    for line_no, record in enumerate(reader, start=2):
+    for line_no, record in enumerate(records, start=2):
         def get(k):
             h = header_map.get(k)
             return record.get(h) if h else None

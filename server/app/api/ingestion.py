@@ -12,6 +12,7 @@ from app.core.periods import normalize_period, period_to_mm_yyyy, periods_match,
 from app.db.models import Client, FraudAlert, Invoice, Message, Supplier, Upload, User
 from app.db.session import get_db
 from app.services.parsing import derive_tax_period, parse_by_document_type, validate_gstin_format
+from app.services.readability import check_document_readability
 from app.services.reconciliation import normalize_key
 from app.services.storage import read_bytes, upload_bytes
 
@@ -290,6 +291,16 @@ async def upload_document(
     # can't escape the storage root or overwrite an earlier upload.
     upload_id = f"upl_{uuid.uuid4().hex[:16]}"
     content = await file.read()
+
+    # Reject blurry, blank or damaged invoice/PO scans before anything is stored, so the client
+    # is told to re-upload now instead of the CA finding out during review.
+    scan_label = {"TAX_INVOICE": "invoice", "PURCHASE_ORDER": "purchase order"}.get(norm_doc_type)
+    if scan_label:
+        problem = check_document_readability(
+            content, file.filename or "", file.content_type or "", document_label=scan_label
+        )
+        if problem:
+            raise HTTPException(status_code=422, detail=problem)
     safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", file.filename or "").lstrip(".") or "upload"
     object_key = f"clients/{clientId}/uploads/{upload_id}_{safe_filename}"
     upload_bytes(object_key, content, file.content_type or "application/octet-stream")

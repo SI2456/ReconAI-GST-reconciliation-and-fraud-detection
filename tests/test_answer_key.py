@@ -14,9 +14,7 @@ Run from the repo root:  server\\.venv\\Scripts\\python -m pytest tests
 import csv
 import json
 import re
-import uuid
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -35,31 +33,6 @@ EXPECTED_STATUS = {
 
 def canon(invoice_no: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", str(invoice_no or "").upper())
-
-
-@pytest.fixture(scope="module")
-def api():
-    from fastapi.testclient import TestClient
-    from app.main import app
-
-    return TestClient(app)
-
-
-@pytest.fixture(scope="module")
-def issued_otps():
-    """Capture OTPs as they are generated (the API never returns them)."""
-    import app.services.otp as otp_service
-
-    issued: list[str] = []
-    real_generate = otp_service.generate_otp
-
-    def capture() -> str:
-        issued.append(real_generate())
-        return issued[-1]
-
-    otp_service.generate_otp = capture
-    yield issued
-    otp_service.generate_otp = real_generate
 
 
 def _upload(api, ws, path: Path, doc_type: str, period: str) -> None:
@@ -99,24 +72,15 @@ def _shown_partner_id(api, headers, invoice_id: str) -> str | None:
 
 
 @pytest.fixture(scope="module", params=DATASETS, ids=lambda p: p.name)
-def reconciled(request, api, issued_otps):
+def reconciled(request, api, new_client_workspace):
     """A client workspace with one dataset uploaded and reconciled."""
     ds: Path = request.param
     gstr_files = sorted(ds.glob("gstr2b_*.json"))
     assert gstr_files, f"no gstr2b_*.json files in {ds}"
     gstin = json.loads(gstr_files[0].read_text(encoding="utf-8"))["gstin_of_recipient"]
-
-    email = f"{ds.name.lower()}-{uuid.uuid4().hex[:6]}@example.com"
-    r = api.post("/api/auth/register", json={
-        "name": ds.name, "email": email, "password": "test-password",
-        "role": "client", "businessName": ds.name,
-    })
-    assert r.status_code == 201, r.text
-    r = api.post("/api/auth/verify-otp", json={"email": email, "otp": issued_otps[-1]})
-    assert r.status_code == 200, r.text
-    headers = {"Authorization": f"Bearer {r.json()['token']}"}
-    client_id = api.get("/api/clients/me", headers=headers).json()["client"]["id"]
-    ws = SimpleNamespace(ds=ds, headers=headers, client_id=client_id, gstin=gstin)
+    ws = new_client_workspace(ds.name, gstin)
+    ws.ds = ds
+    headers, client_id = ws.headers, ws.client_id
 
     _upload(api, ws, ds / "purchase_register.csv", "PURCHASE_REGISTER", "04-2026")
     for path in gstr_files:
