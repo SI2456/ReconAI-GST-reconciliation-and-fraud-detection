@@ -3796,33 +3796,322 @@ function CaseSupportingNotesModal({
   );
 }
 // ── Graph Analytics ────────────────────────────────────────────────────────
+type GraphNode = { id: string; label: string; type: string; risk: string; clientId?: string; x: number; y: number };
+type GraphEdge = { from: string; to: string; amount: string; amountValue: number; gst: number; count: number; suspicious: boolean };
+type GraphCycle = { gstins: string[]; labels: string[]; length: number; itc: number; itcDisplay: string };
+
+const RECON_STATUS_COLORS: Record<string, string> = {
+  Matched: "text-emerald-600 dark:text-emerald-400",
+  Mismatched: "text-amber-600 dark:text-amber-400",
+  Missing: "text-red-600 dark:text-red-400",
+  Duplicate: "text-orange-600 dark:text-orange-400",
+  Pending: "text-muted-foreground",
+};
+
+function ReconBreakdown({ counts }: { counts: Record<string, number> }) {
+  const statuses = ["Matched", "Mismatched", "Missing", "Duplicate", "Pending"].filter(s => s !== "Pending" || counts.Pending > 0);
+  return (
+    <div className="grid grid-cols-2 gap-1">
+      {statuses.map(s => (
+        <div key={s} className="flex justify-between text-[11px] bg-muted/40 rounded px-2 py-1">
+          <span className="text-muted-foreground">{s}</span>
+          <span className={`font-mono font-semibold ${RECON_STATUS_COLORS[s]}`}>{counts[s] ?? 0}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EntityLink({ label, gstin, onSelect, canSelect }: { label: string; gstin: string; onSelect: (id: string) => void; canSelect: boolean }) {
+  if (!canSelect) return <span className="truncate">{label}</span>;
+  return (
+    <button type="button" onClick={() => onSelect(gstin)} className="truncate text-left text-primary hover:underline" title={`Show ${label} in the graph`}>
+      {label}
+    </button>
+  );
+}
+
+function GraphEntityDetails({ node, details, loading, error, rings, activeRing, hasNode, onSelect, onShowRing, onClose }: {
+  node: GraphNode | undefined;
+  details: any;
+  loading: boolean;
+  error: string;
+  rings: number[];
+  activeRing: number | null;
+  hasNode: (id: string) => boolean;
+  onSelect: (id: string) => void;
+  onShowRing: (index: number) => void;
+  onClose: () => void;
+}) {
+  const isClient = details ? details.kind === "client" : node?.type === "client";
+  const gstinLabel = node && !node.id.startsWith("PENDING") ? node.id : "Not verified yet";
+  return (
+    <div className="bg-card border border-primary/40 rounded-lg p-3 space-y-3 max-h-[560px] overflow-y-auto">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isClient ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+            {isClient ? <Building2 size={16} /> : <Layers size={16} />}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold truncate">{details?.client?.name ?? details?.supplier?.name ?? node?.label}</div>
+            <div className="text-[10px] text-muted-foreground font-mono truncate">{isClient ? "Client" : "Supplier"} · GSTIN {gstinLabel}</div>
+          </div>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close details" className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"><X size={14} /></button>
+      </div>
+
+      {rings.length > 0 && (
+        <div className="border border-red-300 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 rounded p-2 space-y-1.5">
+          <div className="text-[11px] font-medium text-red-700 dark:text-red-400 flex items-center gap-1.5">
+            <AlertTriangle size={12} /> Part of {rings.length} circular trading ring{rings.length === 1 ? "" : "s"}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {rings.map(i => (
+              <button key={i} type="button" onClick={() => onShowRing(i)}
+                className={`text-[10px] px-2 py-0.5 rounded border ${activeRing === i ? "bg-red-600 text-white border-red-600" : "border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"}`}>
+                {activeRing === i ? `Showing ring ${i + 1}` : `Show ring ${i + 1}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 size={12} className="animate-spin" /> Loading details…</div>}
+      {error && <div className="text-xs text-red-600 dark:text-red-400">{error}</div>}
+
+      {details?.kind === "client" && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Compliance</div>
+              <div className={`font-mono font-bold text-sm ${getComplianceColor(details.client.compliance)}`}>{details.client.compliance}%</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Risk profile</div>
+              <div className={`font-semibold text-sm ${getRiskTextColor(details.client.risk)}`}>{details.client.risk}</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Purchases</div>
+              <div className="font-mono font-semibold text-sm">{details.purchaseValueDisplay}</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Suppliers</div>
+              <div className="font-mono font-semibold text-sm">{details.supplierCount}</div>
+            </div>
+          </div>
+
+          <div className="text-[11px] space-y-1">
+            {details.client.gstLegalName && <div className="flex justify-between gap-2"><span className="text-muted-foreground">Legal name</span><span className="truncate">{details.client.gstLegalName}</span></div>}
+            {details.client.gstStatus && <div className="flex justify-between gap-2"><span className="text-muted-foreground">GST status</span><span>{details.client.gstStatus}</span></div>}
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">City</span><span>{details.client.city || "Not specified"}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Email</span><span className="font-mono truncate">{details.client.email || "Not registered"}</span></div>
+            <div className="flex justify-between gap-2"><span className="text-muted-foreground">Assigned CA</span><span className="truncate">{details.client.caName || "Unassigned"}</span></div>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Reconciliation ({details.client.invoices} invoices)</div>
+            <ReconBreakdown counts={details.reconciliation} />
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Open fraud alerts ({details.openAlertCount})</div>
+            {details.openAlerts.length === 0 ? (
+              <div className="text-[11px] text-muted-foreground">No open alerts.</div>
+            ) : (
+              <div className="space-y-1">
+                {details.openAlerts.map((a: any) => (
+                  <div key={a.id} className="flex justify-between gap-2 text-[11px] bg-muted/40 rounded px-2 py-1">
+                    <span className="truncate">{a.type}</span>
+                    <span className={`font-mono shrink-0 ${getRiskTextColor(riskScoreLabel(a.risk))}`}>risk {a.risk}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Top suppliers</div>
+            <div className="space-y-1">
+              {details.topSuppliers.map((s: any) => (
+                <div key={s.gstin || s.name} className="flex justify-between gap-2 text-[11px]">
+                  <EntityLink label={s.name} gstin={s.gstin} onSelect={onSelect} canSelect={!!s.gstin && hasNode(s.gstin)} />
+                  <span className="font-mono text-muted-foreground shrink-0">{s.totalDisplay} · {s.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {details?.kind === "supplier" && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Invoices</div>
+              <div className="font-mono font-semibold text-sm">{details.supplier.invoiceCount}</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Billed value</div>
+              <div className="font-mono font-semibold text-sm">{details.supplier.totalValueDisplay}</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">GST charged</div>
+              <div className="font-mono font-semibold text-sm">{details.supplier.gstDisplay}</div>
+            </div>
+            <div className="bg-muted/40 rounded p-2">
+              <div className="text-[10px] text-muted-foreground">Clients billed</div>
+              <div className="font-mono font-semibold text-sm">{details.billedClients.length}</div>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Bills these clients</div>
+            <div className="space-y-1">
+              {details.billedClients.map((c: any) => (
+                <div key={c.clientId} className="flex justify-between gap-2 text-[11px]">
+                  <EntityLink label={c.name} gstin={c.gstin} onSelect={onSelect} canSelect={!!c.gstin && hasNode(c.gstin)} />
+                  <span className="font-mono text-muted-foreground shrink-0">{c.totalDisplay} · {c.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Reconciliation of their invoices</div>
+            <ReconBreakdown counts={details.reconciliation} />
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium mb-1">Recent invoices</div>
+            <div className="space-y-1">
+              {details.recentInvoices.map((inv: any) => (
+                <div key={inv.id} className="text-[11px] bg-muted/40 rounded px-2 py-1">
+                  <div className="flex justify-between gap-2">
+                    <span className="font-mono truncate">{inv.invoiceNo}</span>
+                    <span className={`shrink-0 ${RECON_STATUS_COLORS[inv.status] ?? "text-muted-foreground"}`}>{inv.status}</span>
+                  </div>
+                  <div className="flex justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span className="truncate">{inv.date} · {inv.clientName}</span>
+                    <span className="font-mono shrink-0">{formatCurrency(inv.total)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+      <div className="text-[10px] text-muted-foreground">Figures from purchase-register invoices.</div>
+    </div>
+  );
+}
+
+// Drawing area (SVG viewBox units); the SVG scales to the panel width.
+const GRAPH_W = 900;
+const GRAPH_H = 500;
+const nodeRadius = (n: { type: string }) => (n.type === "client" ? 22 : 15);
+const shortLabel = (label: string) => (label.length > 24 ? `${label.slice(0, 23)}…` : label);
+
+// The officer's clients sit in an inner ring (so rings between clients read as loops);
+// suppliers go on a wide outer ellipse that uses the panel's full width.
+function layoutGraph(raw: Omit<GraphNode, "x" | "y">[]): GraphNode[] {
+  const cx = GRAPH_W / 2, cy = GRAPH_H / 2;
+  const clients = raw.filter(n => n.type === "client");
+  const others = raw.filter(n => n.type !== "client");
+  const place = (list: typeof raw, rx: number, ry: number, offset: number) =>
+    list.map((n, i) => {
+      if (list.length === 1 && rx < 100) return { ...n, x: cx, y: cy };
+      const angle = (2 * Math.PI * i) / list.length - Math.PI / 2 + offset;
+      return { ...n, x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
+    });
+  const innerR = Math.min(95, 45 + 18 * clients.length);
+  return [
+    ...place(clients, innerR, innerR, 0),
+    ...place(others, GRAPH_W / 2 - 120, GRAPH_H / 2 - 50, Math.PI / Math.max(others.length, 1)),
+  ];
+}
+
 function GraphPage() {
-  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[]; cycles: any[]; metrics: any }>({ nodes: [], edges: [], cycles: [], metrics: {} });
+  const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; edges: GraphEdge[]; cycles: GraphCycle[]; metrics: any }>({ nodes: [], edges: [], cycles: [], metrics: {} });
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [activeRing, setActiveRing] = useState<number | null>(null);
+  const [details, setDetails] = useState<any>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
 
   useEffect(() => {
     const clientId = getClientId();
     if (!clientId) return;
     setLoading(true);
-    apiRequest<{ nodes: any[]; edges: any[]; cycles: any[]; metrics: any }>(`/api/graph?clientId=${clientId}`, { auth: true })
+    apiRequest<{ nodes: GraphNode[]; edges: GraphEdge[]; cycles: GraphCycle[]; metrics: any }>(`/api/graph?clientId=${clientId}`, { auth: true })
       .then(data => {
-        // Lay nodes out on a circle so trading rings read as visible loops.
-        const cx = 340, cy = 195, r = 150;
-        const arr = data.nodes || [];
-        const positioned = arr.map((n, i) => {
-          const angle = (2 * Math.PI * i) / Math.max(arr.length, 1) - Math.PI / 2;
-          return { ...n, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-        });
-        setGraphData({ nodes: positioned, edges: data.edges || [], cycles: data.cycles || [], metrics: data.metrics || {} });
+        setGraphData({ nodes: layoutGraph(data.nodes || []), edges: data.edges || [], cycles: data.cycles || [], metrics: data.metrics || {} });
       })
       .catch(err => setNotice(err instanceof Error ? err.message : "Failed to load graph data."))
       .finally(() => setLoading(false));
   }, []);
 
+  // Load details for the selected entity.
+  useEffect(() => {
+    setDetails(null);
+    setDetailsError("");
+    if (!selectedId) return;
+    let cancelled = false;
+    setDetailsLoading(true);
+    const params = new URLSearchParams({ clientId: String(getClientId()), gstin: selectedId });
+    apiRequest<any>(`/api/graph/node?${params}`, { auth: true })
+      .then(d => { if (!cancelled) setDetails(d); })
+      .catch(err => { if (!cancelled) setDetailsError(err instanceof Error ? err.message : "Failed to load details."); })
+      .finally(() => { if (!cancelled) setDetailsLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedId]);
+
+  const clearSelection = () => { setSelectedId(null); setActiveRing(null); };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") clearSelection(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const { nodes, edges, cycles, metrics } = graphData;
+  const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
+  const neighbours = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!map.has(e.from)) map.set(e.from, new Set());
+      if (!map.has(e.to)) map.set(e.to, new Set());
+      map.get(e.from)!.add(e.to);
+      map.get(e.to)!.add(e.from);
+    }
+    return map;
+  }, [edges]);
+
+  // What's emphasised: a highlighted ring, otherwise the hovered/selected entity and its direct links.
+  const focus = useMemo(() => {
+    if (activeRing !== null && cycles[activeRing]) {
+      const ring = cycles[activeRing].gstins;
+      const ringEdges = new Set(ring.map((g, i) => `${g}>${ring[(i + 1) % ring.length]}`));
+      return { nodes: new Set(ring), hasEdge: (e: GraphEdge) => ringEdges.has(`${e.from}>${e.to}`) };
+    }
+    const centre = hoveredId ?? selectedId;
+    if (!centre) return null;
+    return {
+      nodes: new Set([centre, ...(neighbours.get(centre) ?? [])]),
+      hasEdge: (e: GraphEdge) => e.from === centre || e.to === centre,
+    };
+  }, [activeRing, cycles, hoveredId, selectedId, neighbours]);
+
+  const selectNode = (id: string) => {
+    setActiveRing(null);
+    setSelectedId(prev => (prev === id ? null : id));
+  };
+  const toggleRing = (index: number) => setActiveRing(prev => (prev === index ? null : index));
+  const ringsOf = (id: string) => cycles.flatMap((c, i) => (c.gstins.includes(id) ? [i] : []));
+
   const nodeColor = (risk: string) => ({ low: "#10B981", medium: "#F59E0B", high: "#EF4444", critical: "#DC2626" }[risk] ?? "#6366F1");
-  const getNode = (id: string) => nodes.find(n => n.id === id) || { id, x: 0, y: 0, label: id, risk: "low" };
+  const getNode = (id: string) => nodeById.get(id) || { id, x: 0, y: 0, label: id, risk: "low", type: "supplier" };
 
   return (
     <div className="p-6 space-y-4">
@@ -3839,18 +4128,19 @@ function GraphPage() {
       {notice && <div className="text-xs text-primary bg-accent border border-border rounded-md px-3 py-2">{notice}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-3 bg-card border border-border rounded-lg overflow-hidden" style={{ height: 440 }}>
-          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="lg:col-span-3 lg:self-start bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-red-500 rounded inline-block" /> Suspicious</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-border rounded inline-block" style={{ background: "var(--muted-foreground)" }} /> Normal</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Critical</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> High/Med</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Low</span>
+              <span className="text-[11px]">· Click an entity for details · Esc to clear</span>
             </div>
             <Badge label={`${edges.filter(e => e.suspicious).length} Suspicious Edges`} variant="neutral" />
           </div>
-          <svg width="100%" height="390" className="overflow-visible">
+          <svg viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`} width="100%" className="block" style={{ maxHeight: 560 }} onClick={e => { if (e.target === e.currentTarget) clearSelection(); }}>
             <defs>
               <marker id="arrow-sus" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                 <path d="M0,0 L6,3 L0,6 Z" fill="#EF4444" />
@@ -3864,34 +4154,86 @@ function GraphPage() {
               const to = getNode(e.to);
               const dx = to.x - from.x;
               const dy = to.y - from.y;
-              const len = Math.sqrt(dx * dx + dy * dy);
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
               const nx = dx / len; const ny = dy / len;
-              const x1 = from.x + nx * 22; const y1 = from.y + ny * 22;
-              const x2 = to.x - nx * 28; const y2 = to.y - ny * 28;
+              const x1 = from.x + nx * nodeRadius(from); const y1 = from.y + ny * nodeRadius(from);
+              const x2 = to.x - nx * (nodeRadius(to) + 6); const y2 = to.y - ny * (nodeRadius(to) + 6);
+              const emphasised = focus?.hasEdge(e) ?? false;
+              const dimmed = focus !== null && !emphasised;
+              const showAmount = focus ? emphasised : e.suspicious;
               return (
-                <g key={i}>
-                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={e.suspicious ? "#EF4444" : "var(--muted-foreground)"} strokeWidth={e.suspicious ? 2 : 1} strokeDasharray={e.suspicious ? "none" : "4 3"} strokeOpacity={e.suspicious ? 0.8 : 0.4} markerEnd={e.suspicious ? "url(#arrow-sus)" : "url(#arrow-norm)"} />
-                  <text x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 6} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)" className="font-mono">{e.amount}</text>
+                <g key={i} opacity={dimmed ? 0.12 : 1} style={{ transition: "opacity 150ms" }}>
+                  <title>{`${from.label} → ${to.label}\n${e.amount} · ${e.count} invoice${e.count === 1 ? "" : "s"}${e.suspicious ? "\nPart of a circular trading ring" : ""}`}</title>
+                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={e.suspicious ? "#EF4444" : "var(--muted-foreground)"} strokeWidth={(e.suspicious ? 2 : 1) + (emphasised ? 1 : 0)} strokeDasharray={e.suspicious ? "none" : "4 3"} strokeOpacity={e.suspicious || emphasised ? 0.9 : 0.4} markerEnd={e.suspicious ? "url(#arrow-sus)" : "url(#arrow-norm)"} />
+                  {showAmount && <text x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 6} textAnchor="middle" fontSize="10" fill="var(--foreground)" className="font-mono" paintOrder="stroke" stroke="var(--card)" strokeWidth={3}>{e.amount}</text>}
                 </g>
               );
             })}
-            {nodes.map(n => (
-              <g key={n.id} className="cursor-pointer">
-                <circle cx={n.x} cy={n.y} r={22} fill={nodeColor(n.risk)} fillOpacity={0.15} stroke={nodeColor(n.risk)} strokeWidth={2} />
-                <circle cx={n.x} cy={n.y} r={10} fill={nodeColor(n.risk)} />
-                <text x={n.x} y={n.y + 36} textAnchor="middle" fontSize="10" fill="var(--foreground)" fontWeight="500">{n.label}</text>
-                <text x={n.x} y={n.y + 47} textAnchor="middle" fontSize="8" fill="var(--muted-foreground)">{n.type}</text>
-              </g>
-            ))}
+            {nodes.map(n => {
+              const selected = n.id === selectedId;
+              const dimmed = focus !== null && !focus.nodes.has(n.id);
+              const r = nodeRadius(n);
+              const showLabel = n.type === "client" || nodes.length <= 12 || (focus?.nodes.has(n.id) ?? false);
+              return (
+                <g
+                  key={n.id}
+                  className="cursor-pointer outline-none"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${n.label}, ${n.type}. Show details`}
+                  aria-pressed={selected}
+                  opacity={dimmed ? 0.25 : 1}
+                  style={{ transition: "opacity 150ms" }}
+                  onClick={() => selectNode(n.id)}
+                  onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selectNode(n.id); } }}
+                  onMouseEnter={() => setHoveredId(n.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  onFocus={() => setHoveredId(n.id)}
+                  onBlur={() => setHoveredId(null)}
+                >
+                  <title>{`${n.label} (${n.type})\nGSTIN: ${n.id.startsWith("PENDING") ? "not verified" : n.id}\nClick for details`}</title>
+                  {selected && <circle cx={n.x} cy={n.y} r={r + 7} fill="none" stroke="var(--primary)" strokeWidth={2.5} strokeDasharray="5 3" />}
+                  <circle cx={n.x} cy={n.y} r={n.id === hoveredId ? r + 2 : r} fill={nodeColor(n.risk)} fillOpacity={selected ? 0.3 : 0.15} stroke={nodeColor(n.risk)} strokeWidth={2} style={{ transition: "r 120ms" }} />
+                  <circle cx={n.x} cy={n.y} r={n.type === "client" ? 10 : 6} fill={nodeColor(n.risk)} />
+                  {showLabel && (
+                    <>
+                      <text x={n.x} y={n.y + r + 14} textAnchor="middle" fontSize="11" fill="var(--foreground)" fontWeight={selected || n.type === "client" ? 700 : 500} paintOrder="stroke" stroke="var(--card)" strokeWidth={3}>{shortLabel(n.label)}</text>
+                      <text x={n.x} y={n.y + r + 25} textAnchor="middle" fontSize="9" fill="var(--muted-foreground)" paintOrder="stroke" stroke="var(--card)" strokeWidth={3}>{n.type}</text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
             {nodes.length === 0 && (
-              <text x="50%" y="50%" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">
-                No graph data loaded
+              <text x={GRAPH_W / 2} y={GRAPH_H / 2} textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">
+                {loading ? "Loading network…" : "No graph data loaded"}
               </text>
             )}
           </svg>
         </div>
 
         <div className="space-y-3">
+          {selectedId ? (
+            <GraphEntityDetails
+              node={nodeById.get(selectedId)}
+              details={details}
+              loading={detailsLoading}
+              error={detailsError}
+              rings={ringsOf(selectedId)}
+              activeRing={activeRing}
+              hasNode={id => nodeById.has(id)}
+              onSelect={selectNode}
+              onShowRing={toggleRing}
+              onClose={clearSelection}
+            />
+          ) : (
+            nodes.length > 0 && (
+              <div className="bg-card border border-dashed border-border rounded-lg p-3 text-[11px] text-muted-foreground flex items-start gap-2">
+                <Info size={13} className="mt-0.5 shrink-0" />
+                <span>Click a client or supplier in the graph to see its details, reconciliation status and fraud alerts.</span>
+              </div>
+            )
+          )}
           <div className="bg-card border border-border rounded-lg p-3">
             <div className="text-xs font-medium mb-2">Network Summary</div>
             {[["Nodes (Entities)", nodes.length.toLocaleString()], ["Edges (Transactions)", edges.length.toLocaleString()], ["Circular Chains", String(metrics.cyclesDetected ?? cycles.length)], ["Suspicious Edges", String(metrics.suspiciousEdges ?? edges.filter(e => e.suspicious).length)]].map(([k, v]) => (
@@ -3914,16 +4256,22 @@ function GraphPage() {
               </>
             ) : (
               <>
-                <div className="text-[11px] text-red-600 dark:text-red-400 font-medium mb-2">{cycles.length} circular trading ring{cycles.length === 1 ? "" : "s"} detected</div>
+                <div className="text-[11px] text-red-600 dark:text-red-400 font-medium mb-2">{cycles.length} circular trading ring{cycles.length === 1 ? "" : "s"} detected · click one to highlight it</div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {cycles.map((c: any, i: number) => (
-                    <div key={i} className="border border-red-200 dark:border-red-900/40 rounded p-2">
+                  {cycles.map((c, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => toggleRing(i)}
+                      aria-pressed={activeRing === i}
+                      className={`w-full text-left border rounded p-2 transition-colors ${activeRing === i ? "border-red-500 bg-red-50 dark:bg-red-950/30" : "border-red-200 dark:border-red-900/40 hover:bg-muted/60"}`}
+                    >
                       <div className="text-[11px] font-mono leading-relaxed">{c.labels.join(" → ")} → {c.labels[0]}</div>
                       <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                         <span>{c.length} entities</span>
                         <span className="font-mono">ITC at risk: {c.itcDisplay}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 <div className="text-[11px] font-mono bg-muted px-2 py-1.5 rounded mt-2">Total ITC at Risk: {metrics.itcAtRiskDisplay ?? "₹0"}</div>

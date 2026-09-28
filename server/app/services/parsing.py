@@ -262,6 +262,9 @@ def parse_purchase_register(
             total = round(taxable + gst, 2)
         if taxable == 0 and total and gst:
             taxable = round(total - gst, 2)
+        # Registers that list taxable value, rate and total but no GST amount column.
+        if gst == 0 and taxable and total > taxable:
+            gst = round(total - taxable, 2)
 
         inv_date = _normalize_date(get("invoice_date"))
         derived_period = derive_tax_period(inv_date)
