@@ -112,7 +112,7 @@ pip install -r requirements.txt
 
    * **If using SQLite (No Postgres installed):**
      ```env
-     DATABASE_URL=sqlite:///./data/reconai-dev.sqlite3
+     DATABASE_URL=sqlite:///./server/data/reconai-dev.sqlite3
      ```
 
 ---

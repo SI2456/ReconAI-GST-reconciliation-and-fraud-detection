@@ -1,4 +1,5 @@
 import sys
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -9,6 +10,11 @@ from app.db.session import Base, SessionLocal, engine
 from app.services.reconciliation import normalize_key
 
 
+def new_id(prefix: str) -> str:
+    # Models have no ID defaults; use the same "<prefix>_<hex>" format as the API.
+    return f"{prefix}_{uuid.uuid4().hex[:16]}"
+
+
 def main() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -17,9 +23,9 @@ def main() -> None:
             print("Seed skipped: users already exist.")
             return
 
-        admin = User(name="System Admin", email="admin.demo@reconai.local", password_hash=hash_password("Demo@123"), role="admin", email_verified=True)
+        admin = User(id=new_id("usr"), name="System Admin", email="admin.demo@reconai.local", password_hash=hash_password("Demo@123"), role="admin", email_verified=True)
         ca = User(
-            name="Demo Chartered Accountant",
+            id=new_id("usr"), name="Demo Chartered Accountant",
             email="ca.demo@reconai.local",
             password_hash=hash_password("Demo@123"),
             role="ca",
@@ -28,7 +34,7 @@ def main() -> None:
             email_verified=True,
         )
         client_user = User(
-            name="Demo Client",
+            id=new_id("usr"), name="Demo Client",
             email="client.demo@reconai.local",
             password_hash=hash_password("Demo@123"),
             role="client",
@@ -39,12 +45,12 @@ def main() -> None:
         db.add_all([admin, ca, client_user])
         db.flush()
 
-        db.add(CAProfile(user_id=ca.id, specialization="GST", experience="8 Years", city="Ahmedabad", rating=4.8, is_verified=True))
+        db.add(CAProfile(id=new_id("cap"), user_id=ca.id, specialization="GST", experience="8 Years", city="Ahmedabad", rating=4.8, is_verified=True))
 
-        client = Client(name="Demo Client", gstin="27AAACA1234F1Z5", email=client_user.email, ca_id=ca.id, city="Mumbai", compliance=92)
+        client = Client(id=new_id("cl"), name="Demo Client", gstin="27AAACA1234F1Z5", email=client_user.email, ca_id=ca.id, city="Mumbai", compliance=92)
         db.add(client)
         db.flush()
-        db.add(ClientProfile(user_id=client_user.id, selected_ca_id=ca.id))
+        db.add(ClientProfile(id=new_id("cp"), user_id=client_user.id, selected_ca_id=ca.id))
 
         invoices = [
             ("INV-2026-001", "Apex Steel Traders", "27BBBCD4321P1Z8", "2026-07-01", 42000, 7560, 49560, "books"),
@@ -56,6 +62,7 @@ def main() -> None:
         for invoice_no, supplier, supplier_gstin, invoice_date, taxable, gst, total, source in invoices:
             db.add(
                 Invoice(
+                    id=new_id("inv"),
                     client_id=client.id,
                     invoice_no=invoice_no,
                     supplier=supplier,

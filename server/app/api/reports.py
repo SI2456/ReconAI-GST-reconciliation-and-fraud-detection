@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import ensure_client_scope, get_current_user, scoped_client_ids
 from app.db.models import FraudAlert, Report, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 
 
 router = APIRouter()
@@ -44,4 +45,4 @@ def create_report(payload: CreateReportRequest, db: Session = Depends(get_db), u
 
 
 def serialize_report(report: Report) -> dict:
-    return {"id": report.id, "clientId": report.client_id, "name": report.name, "type": report.type, "status": report.status, "payload": json.loads(report.payload_json)}
+    return {"id": report.id, "clientId": report.client_id, "name": report.name, "type": report.type, "status": report.status, "payload": json.loads(report.payload_json), "createdAt": iso_utc(report.created_at)}

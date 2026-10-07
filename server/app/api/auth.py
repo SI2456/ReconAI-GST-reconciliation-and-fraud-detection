@@ -8,7 +8,7 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.db.models import CAProfile, Client, ClientProfile, User
 from app.db.session import get_db
 from app.services.gstverify import normalize_gstin
-from app.services.otp import create_email_otp, verify_email_otp
+from app.services.otp import create_email_otp, otp_delivery_note, verify_email_otp
 
 
 router = APIRouter()
@@ -87,8 +87,22 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> dict:
     if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
     email = payload.email.lower().strip()
-    if db.query(User).filter(User.email == email).first():
+    existing = db.query(User).filter(User.email == email).first()
+    if existing and existing.email_verified:
         raise HTTPException(status_code=409, detail="Email is already registered.")
+    if existing:
+        # Registered before but never verified (e.g. the OTP screen was closed): update the
+        # pending sign-up and send a new OTP. It only becomes usable once the OTP is verified.
+        existing.name = payload.name.strip()
+        existing.phone = payload.phone
+        existing.password_hash = hash_password(payload.password)
+        pending_client = db.query(Client).filter(Client.email == email).first()
+        if pending_client:
+            pending_client.name = payload.businessName or payload.name
+            pending_client.city = payload.city
+        create_email_otp(db, existing, "registration", resend=True)
+        db.commit()
+        return {"message": f"Registration pending verification. {otp_delivery_note(email)}", "email": email}
     clean_gstin = ""
     if payload.role != "client" and payload.gstin:
         clean_gstin = normalize_gstin(payload.gstin)
@@ -143,7 +157,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> dict:
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Email or GSTIN is already registered.") from exc
-    return {"message": "Registration successful. Verify the OTP sent to your email.", "email": user.email}
+    return {"message": f"Registration successful. {otp_delivery_note(user.email)}", "email": user.email}
 
 
 @router.post("/verify-otp")
@@ -165,7 +179,7 @@ def resend_otp(payload: ResendOtpRequest, db: Session = Depends(get_db)) -> dict
         raise HTTPException(status_code=404, detail="Account not found.")
     create_email_otp(db, user, payload.purpose, resend=True)
     db.commit()
-    return {"message": "OTP sent again."}
+    return {"message": f"New OTP sent. {otp_delivery_note(user.email)}"}
 
 
 @router.post("/forgot-password")
@@ -177,7 +191,7 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=403, detail="Email is not verified yet.")
     create_email_otp(db, user, "password_reset")
     db.commit()
-    return {"message": "Password reset OTP sent.", "email": user.email}
+    return {"message": f"Password reset OTP sent. {otp_delivery_note(user.email)}", "email": user.email}
 
 
 @router.post("/verify-reset-otp")

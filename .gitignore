@@ -17,3 +17,6 @@ server.zip
 server/data/uploads/
 server/data/db.json
 server/server/
+
+# Debug output written by reference_data/extract.py (contains extracted invoice data)
+reference_data/raw_response.txt

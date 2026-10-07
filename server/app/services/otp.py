@@ -5,6 +5,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import hash_password, verify_password
 from app.db.models import EmailOtp, User
 from app.services.email import send_email
@@ -17,6 +18,13 @@ OTP_MAX_RESENDS = 3
 
 def _now() -> datetime:
     return datetime.utcnow()
+
+
+def otp_delivery_note(email: str) -> str:
+    """Tell the user where the OTP went (the code itself is never returned by the API)."""
+    if settings.email_host and settings.email_host_user:
+        return f"We sent a 6-digit OTP to {email}."
+    return "Email sending isn't configured on this server, so the OTP was printed in the backend terminal."
 
 
 def generate_otp() -> str:

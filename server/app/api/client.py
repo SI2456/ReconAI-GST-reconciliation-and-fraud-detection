@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_roles
 from app.db.models import CAProfile, Client, ClientProfile, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 from app.services.gstverify import fetch_gstin_captcha, normalize_gstin, verify_gstin_details, verify_gstin_profile
 
 
@@ -70,7 +71,7 @@ def serialize_profile(db: Session, user: User) -> dict:
             "gstLegalName": client.gst_legal_name if client else "",
             "gstTradeName": client.gst_trade_name if client else "",
             "gstStatus": client.gst_status if client else "",
-            "gstVerifiedAt": client.gst_verified_at if client and client.gst_verified_at else None,
+            "gstVerifiedAt": iso_utc(client.gst_verified_at) if client else None,
             "gstDetails": json.loads(client.gst_details_json) if client and client.gst_details_json else {},
         },
         "ca": {
@@ -194,7 +195,7 @@ async def verify_client_gstin(payload: VerifyGstinRequest, db: Session = Depends
     client.gst_trade_name = data.get("tradeName") or ""
     client.gst_status = data.get("status") or "Active"
     client.gst_details_json = json.dumps(data, default=str)
-    client.gst_verified_at = datetime.utcnow()
+    client.gst_verified_at = utcnow()
     if legal_name and (not client.name or client.name == "Client Workspace" or client.name.startswith("User ")):
         client.name = legal_name
 
@@ -256,7 +257,7 @@ def get_reupload_requests(
             "reason": inv.reupload_note or "Tax officer requested document re-upload for verification.",
             "note": inv.reupload_note or "Tax officer requested document re-upload for verification.",
             "sourceBatchFile": up.file_name if up else "",
-            "createdAt": inv.created_at,
+            "createdAt": iso_utc(inv.created_at),
             "status": "requested",
         })
 
@@ -278,7 +279,7 @@ def get_reupload_requests(
             "reason": alt.reupload_note or alt.reason or "Tax officer requested document re-upload.",
             "note": alt.reupload_note or alt.reason or "Tax officer requested document re-upload.",
             "sourceBatchFile": "",
-            "createdAt": alt.created_at,
+            "createdAt": iso_utc(alt.created_at),
             "status": "requested",
         })
 

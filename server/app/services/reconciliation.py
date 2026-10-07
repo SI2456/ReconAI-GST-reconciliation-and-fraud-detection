@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.core.periods import periods_match, normalize_period
 from app.db.models import Invoice, ReconciliationJob, Supplier
+from app.core.timeutil import iso_utc, utcnow
 from app.services.parsing import derive_tax_period
 
 
@@ -317,6 +318,7 @@ def run_reconciliation(db: Session, client_id: int, user_id: int, tax_period: st
 
     return {
         "jobId": job.id,
+        "ranAt": iso_utc(job.created_at),
         "status": "completed",
         "summary": summary,
         "invoices": invoice_results,

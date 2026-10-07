@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { formatIST } from "../lib/datetime";
 import {
   Building2, ShieldAlert, Upload, FileText, CheckCircle2, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Send, User, Bot, Download, RefreshCw,
@@ -302,7 +303,8 @@ export default function ClientDashboard({ user, dark, setDark, onLogout }: Clien
             periodWarnings,
             parsedRows: u.parsedRows ?? 0,
             size: `${getCategoryLabel(correctedDocType)}${taxPeriodStr ? ` (${taxPeriodStr})` : ""} · ${u.parsedRows ?? 0} ${correctedDocType === "SUPPLIER_MASTER" ? "suppliers" : "rows"}`,
-            date: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "",
+            date: formatIST(u.createdAt, ""),
+            processedAt: u.processedAt || "",
             status: u.status,
             isReupload: Boolean(u.isReupload || u.is_reupload),
             reuploadInvoiceId: u.reuploadInvoiceId || u.reupload_invoice_id || "",
@@ -320,7 +322,7 @@ export default function ClientDashboard({ user, dark, setDark, onLogout }: Clien
           setMessages(msgRes.messages.map(message => ({
             sender: message.senderRole === "client" ? "client" : "ca",
             text: message.text,
-            time: message.createdAt ? new Date(message.createdAt).toLocaleString() : "",
+            time: formatIST(message.createdAt, ""),
           })));
         }
       }
@@ -1905,7 +1907,10 @@ export default function ClientDashboard({ user, dark, setDark, onLogout }: Clien
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">{u.size} · Uploaded {u.date}</div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {u.size} · Uploaded {u.date}
+                                {u.processedAt && <span className="text-emerald-600 dark:text-emerald-400"> · Processed {formatIST(u.processedAt)}</span>}
+                              </div>
                               {hasPeriodWarnings && (
                                 <div className="text-[10px] text-amber-700 dark:text-amber-400 mt-1.5 flex items-start gap-1.5 bg-amber-500/10 p-2 rounded-md border border-amber-500/20 max-w-xl">
                                   <Info size={12} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />

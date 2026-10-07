@@ -8,6 +8,7 @@ import {
   GitCompare, ShoppingCart, Store, ArrowLeftRight, FileSearch, Table, FileCode, FileSpreadsheet
 } from "lucide-react";
 import { apiRequest, fetchFileObjectUrl } from "../lib/api";
+import { formatIST } from "../lib/datetime";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export function getDynamicDocumentHeader(data: VerificationDetails): { title: string; subtitle: string; categoryKey: string } {
@@ -194,6 +195,8 @@ interface VerificationDetails {
   csvColumns?: string[];
   csvRows?: any[];
   rawCsvText?: string;
+  uploadedAt?: string;   // UTC ISO timestamps from the API, shown in IST
+  processedAt?: string;
   rawJson?: any;
   sourceBatchFile?: string;
   invoiceId?: string;
@@ -249,6 +252,27 @@ const GST_STATE_CODES: Record<string, string> = {
   "38": "LADAKH",
   "97": "OTHER TERRITORY",
   "99": "CENTRE JURISDICTION",
+};
+
+// Place of supply is written many ways: "27", "27-Maharashtra", "Maharashtra (27)", "MAHARASHTRA".
+// Resolve it to the 2-digit GST state code ("" if it can't be recognised).
+const resolveStateCode = (raw: string): string => {
+  const text = (raw || "").toUpperCase();
+  const numeric = text.match(/\b(\d{2})\b/);
+  if (numeric && GST_STATE_CODES[numeric[1]]) return numeric[1];
+  const letters = text.replace(/[^A-Z]/g, "");
+  if (!letters) return "";
+  let best = "";
+  let bestLen = 0;
+  for (const [code, name] of Object.entries(GST_STATE_CODES)) {
+    const stateLetters = name.replace(/[^A-Z]/g, "");
+    // ">=" so a tie goes to the later code (Andhra Pradesh: 37, not the pre-2014 28).
+    if (letters.includes(stateLetters) && stateLetters.length >= bestLen) {
+      best = code;
+      bestLen = stateLetters.length;
+    }
+  }
+  return best;
 };
 
 interface LevelCheckItem {
@@ -697,7 +721,9 @@ function runRealFraudAnalysis(
   const suppState = (suppStateFromGstin || data.supplierInfo?.supplierState || "").toUpperCase();
 
   const rawPos = (data.buyerInfo?.placeOfSupply || data.buyerInfo?.buyerState || "").toUpperCase();
-  const posCode = rawPos.slice(0, 2);
+  // No readable place of supply: for B2B supplies it is the recipient's state (buyer GSTIN prefix).
+  const buyerGstinCode = (data.buyerInfo?.buyerGstin || "").replace(/[^0-9A-Za-z]/g, "").slice(0, 2);
+  const posCode = resolveStateCode(rawPos) || (GST_STATE_CODES[buyerGstinCode] ? buyerGstinCode : "");
   const posStateFromCode = GST_STATE_CODES[posCode] || "";
   const pos = (posStateFromCode || rawPos).toUpperCase();
 
@@ -938,6 +964,8 @@ function runRealFraudAnalysis(
   const l3Items: LevelCheckItem[] = [];
   let l3Risk = 0;
   const lineItems = data.productInfo?.lineItems || [];
+  // Per-line taxable value and total GST rate (0 when the line shows no rate of its own).
+  const lineGstRates: { taxable: number; rate: number }[] = [];
 
   const serviceKeywords = ["service", "maintenance", "consulting", "software", "development", "freight", "transport", "courier", "charges", "fee", "labour", "labor", "installation", "hiring", "repair", "amc", "management", "subscription", "hosting", "audit", "legal", "security", "manpower", "cleaning"];
   const goodsKeywords = ["laptop", "computer", "server", "hardware", "device", "steel", "iron", "equipment", "box", "paper", "oil", "chemical", "cable", "wire", "pipe", "valve", "cotton", "plastic", "battery", "monitor", "part", "material", "goods", "machine", "component"];
@@ -1120,6 +1148,10 @@ function runRealFraudAnalysis(
 
       // If item-wise GST rate is not specified in the table, use overall invoice tax rate (docTaxRate)
       const appliedRate = hasItemWiseRate ? itemRate : docTaxRate;
+      lineGstRates.push({
+        taxable: Array.isArray(row) ? parseNumber(row[5]) : parseNumber(row?.taxable || row?.amount || row?.total),
+        rate: hasItemWiseRate ? itemRate : 0,
+      });
 
       const lowerDesc = desc.toLowerCase();
       const isGoodsDesc = goodsKeywords.some(k => lowerDesc.includes(k));
@@ -1268,7 +1300,7 @@ function runRealFraudAnalysis(
 
   // ── FIX 2: Document-Level Jurisdiction / Tax-Type Validation ──
   const suppCode = suppStateCode || cleanGstin.slice(0, 2);
-  const posCodeVal = posCode || (rawPos.match(/^\d{2}/) ? rawPos.slice(0, 2) : "");
+  const posCodeVal = posCode;
   const isSameStateTx = Boolean(suppCode && posCodeVal && suppCode === posCodeVal);
   const docIgstAmt = parseNumber(data.taxInfo?.igstAmount);
   const docCgstAmt = parseNumber(data.taxInfo?.cgstAmount);
@@ -1435,7 +1467,42 @@ function runRealFraudAnalysis(
 
   // 3. Tax Rate Recalculation
   const cgstRate = parseNumber(data.taxInfo?.cgstRate);
-  if (cgstRate > 0 && taxableVal > 0 && cgstVal > 0) {
+  // Lines taxed at different rates (e.g. 12% and 18%): no single invoice-level rate applies,
+  // so CGST must be recalculated line by line (half of each line's GST rate).
+  const ratedLines = lineGstRates.filter(l => l.taxable > 0 && l.rate > 0);
+  const isMixedRate = ratedLines.length === lineGstRates.length && new Set(ratedLines.map(l => l.rate)).size > 1;
+  if (isMixedRate && cgstVal > 0) {
+    const expectedCgstAmt = ratedLines.reduce((sum, l) => sum + (l.taxable * l.rate) / 200, 0);
+    const cgstDiff = Math.abs(expectedCgstAmt - cgstVal);
+    const tolerance = Math.max(3.0, ratedLines.length * 0.5); // each line's tax may be rounded
+    const byRate = new Map<number, number>();
+    ratedLines.forEach(l => byRate.set(l.rate, (byRate.get(l.rate) || 0) + l.taxable));
+    const breakdown = [...byRate].map(([rate, base]) => `${rate / 2}% of ₹${base.toFixed(2)}`).join(" + ");
+    if (cgstDiff > tolerance) {
+      l4Risk += 15;
+      l4Items.push({
+        id: "tax_rate_math",
+        name: "CGST Rate Recalculation (Line-wise)",
+        category: "Rate Math",
+        expected: `${breakdown} = ₹${expectedCgstAmt.toFixed(2)}`,
+        received: `Submitted: ₹${cgstVal.toFixed(2)} (Diff: ₹${cgstDiff.toFixed(2)})`,
+        status: "FAIL",
+        riskPoints: 15,
+        reason: `🚨 Tax Rate Discrepancy: CGST differs from the line-wise calculation by ₹${cgstDiff.toFixed(2)}`,
+      });
+    } else {
+      l4Items.push({
+        id: "tax_rate_math",
+        name: "Tax Rate Math Verification (Line-wise)",
+        category: "Rate Math",
+        expected: `Mixed-rate invoice: ${breakdown}`,
+        received: `₹${cgstVal.toFixed(2)} (Matches ₹${expectedCgstAmt.toFixed(2)})`,
+        status: "PASS",
+        riskPoints: 0,
+        details: "Line items are taxed at different GST rates; CGST verified line by line",
+      });
+    }
+  } else if (cgstRate > 0 && taxableVal > 0 && cgstVal > 0) {
     const expectedCgstAmt = (taxableVal * cgstRate) / 100;
     const cgstDiff = Math.abs(expectedCgstAmt - cgstVal);
     if (cgstDiff > 3.0) {
@@ -3225,6 +3292,8 @@ export default function DocumentVerificationModal({
             <span className="font-mono font-medium">
               {data.invoiceInfo?.invoiceNumber ? `Invoice: ${data.invoiceInfo.invoiceNumber}` : data.fileName}
               {data.sourceBatchFile && ` (from ${data.sourceBatchFile})`}
+              {data.uploadedAt && ` · Uploaded ${formatIST(data.uploadedAt)}`}
+              {data.processedAt && ` · Processed ${formatIST(data.processedAt)}`}
             </span>
             <span className="text-[10px] text-emerald-400">
               {isCsvDoc

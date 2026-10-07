@@ -9,6 +9,7 @@ from app.core.periods import period_to_mm_yyyy, parse_month_year, periods_match
 from app.api.deps import ensure_client_scope, get_current_user, scoped_client_ids
 from app.db.models import FraudAlert, Invoice, ReconciliationJob, User, Upload
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 from app.services.ml import run_fraud_detection
 from app.services.parsing import derive_tax_period
 
@@ -274,7 +275,7 @@ def serialize_alert(alert: FraudAlert, db: Session | None = None) -> dict:
             if not reup_note and inv.reupload_note:
                 reup_note = inv.reupload_note
             reup_file = inv.reuploaded_file_name or ""
-            reup_at = inv.reuploaded_at.isoformat() if inv.reuploaded_at else ""
+            reup_at = iso_utc(inv.reuploaded_at) or ""
             if inv.upload_id:
                 up = db.query(Upload).filter(Upload.id == inv.upload_id).first()
                 if up:
@@ -302,4 +303,5 @@ def serialize_alert(alert: FraudAlert, db: Session | None = None) -> dict:
         "reuploadedFileName": reup_file,
         "reuploadedAt": reup_at,
         "isReupload": reup_status == "reuploaded",
+        "createdAt": iso_utc(alert.created_at),
     }

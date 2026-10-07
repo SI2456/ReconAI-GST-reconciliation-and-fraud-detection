@@ -116,7 +116,9 @@ def _upload_invoice(api, ws, filename: str, content: bytes, content_type: str = 
 
 
 def _stored_files() -> set[Path]:
-    root = Path.cwd() / "server" / "data" / "uploads"  # tests run in a temp dir (see conftest.py)
+    from app.core.config import settings
+
+    root = Path(settings.upload_dir)  # a temp dir during tests (see conftest.py)
     return set(root.rglob("*")) if root.exists() else set()
 
 

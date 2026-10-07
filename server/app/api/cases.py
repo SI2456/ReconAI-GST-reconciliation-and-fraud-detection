@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import ensure_client_scope, get_current_user, scoped_client_ids
 from app.db.models import CaseNote, Client, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 from app.services.storage import get_bytes, inline_disposition, upload_bytes
 
 
@@ -70,7 +71,7 @@ async def add_case_note(
             "noteText": note.note_text,
             "attachmentFilename": note.attachment_filename,
             "hasAttachment": bool(note.attachment_filename),
-            "createdAt": note.created_at.isoformat() if note.created_at else "",
+            "createdAt": iso_utc(note.created_at) or "",
         }
     }
 
@@ -105,7 +106,7 @@ def get_case_notes(
             "noteText": n.note_text,
             "attachmentFilename": n.attachment_filename,
             "hasAttachment": bool(n.attachment_filename),
-            "createdAt": n.created_at.isoformat() if n.created_at else "",
+            "createdAt": iso_utc(n.created_at) or "",
         })
 
     return {"notes": result}

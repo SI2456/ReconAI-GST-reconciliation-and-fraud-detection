@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, scoped_client_ids
 from app.db.models import Invoice, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 
 
 router = APIRouter()
@@ -48,7 +49,7 @@ def list_invoices(db: Session = Depends(get_db), user: User = Depends(get_curren
                 "reuploaded_file_name": invoice.reuploaded_file_name or "",
                 "reuploadedFileName": invoice.reuploaded_file_name or "",
                 "reuploaded_at": invoice.reuploaded_at.isoformat() if invoice.reuploaded_at else "",
-                "reuploadedAt": invoice.reuploaded_at.isoformat() if invoice.reuploaded_at else "",
+                "reuploadedAt": iso_utc(invoice.reuploaded_at) or "",
                 "is_reupload": invoice.reupload_status == "reuploaded",
                 "isReupload": invoice.reupload_status == "reuploaded",
             }

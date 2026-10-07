@@ -6,7 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # server/.env resolved absolutely from this file, so it loads no matter which
 # directory the server is started from (root, server/, or an IDE working dir).
-ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+SERVER_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = SERVER_DIR.parent
+ENV_FILE = SERVER_DIR / ".env"
 
 # Secrets that ship in this repo; fine for local dev, never for production.
 _PUBLIC_JWT_SECRETS = {
@@ -29,6 +31,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 720
 
+    # Local file storage (used when R2 isn't configured). Absolute, so the server finds the
+    # files whichever folder it is started from.
+    upload_dir: str = str(SERVER_DIR / "data" / "uploads")
+
     r2_endpoint_url: str = ""
     r2_access_key_id: str = ""
     r2_secret_access_key: str = ""
@@ -43,6 +49,8 @@ class Settings(BaseSettings):
 
     gstverify_api_key: str = ""
     gstverify_base_url: str = "https://api.gstverify.dubey.app/api/v1"
+
+    gemini_api_key: str = ""
 
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5vl:3b"

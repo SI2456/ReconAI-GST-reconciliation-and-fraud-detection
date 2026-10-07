@@ -13,6 +13,8 @@ from app.db.models import Client, FraudAlert, Invoice, Message, Supplier, Upload
 from app.db.session import get_db
 from app.services.parsing import derive_tax_period, parse_by_document_type, validate_gstin_format
 from app.services.readability import check_document_readability
+from app.core.timeutil import iso_utc, utcnow
+from app.services.audit import record_activity
 from app.services.reconciliation import normalize_key
 from app.services.storage import read_bytes, upload_bytes
 
@@ -141,7 +143,11 @@ def ingest_invoices(db: Session, upload: Upload, source: str, rows) -> int:
                 existing.reuploaded_at = datetime.now(timezone.utc)
             existing.duplicate_count = 0
             seen_in_file[row_norm_key] = existing
-            # NOTE: do NOT touch existing.upload_id or existing.preview_upload_id here —
+            if (upload.document_type or "").upper() == "TAX_INVOICE":
+                # The invoice PDF for an invoice already in the books (e.g. from the purchase
+                # register): link it as this invoice's document so details/preview show the PDF.
+                existing.preview_upload_id = upload.id
+            # NOTE: otherwise do NOT touch existing.upload_id or existing.preview_upload_id —
             # same-source updates don't change document lineage.
             continue  # skip to next row, do not insert a new Invoice
 
@@ -346,6 +352,7 @@ async def upload_document(
         upload.parsed_rows = count
         upload.validation_errors = json.dumps(errors)
         upload.status = "processed" if count > 0 else ("failed" if errors else "processed")
+        upload.processed_at = utcnow()
     else:
         invoice_source = "gstr" if norm_doc_type == "GSTR2B" else ("po" if norm_doc_type == "PURCHASE_ORDER" else "books")
         count = ingest_invoices(db, upload, invoice_source, rows_or_suppliers)
@@ -359,6 +366,7 @@ async def upload_document(
             upload.status = "parsed_with_warnings" if (errors or period_warnings) else "parsed"
         else:
             upload.status = "failed" if errors else "processed"
+        upload.processed_at = utcnow()
 
     # Handle Re-upload state updates on target invoices and fraud alerts
     if is_reup:
@@ -397,6 +405,11 @@ async def upload_document(
         )
         db.add(notif_msg)
 
+    record_activity(
+        db, user, "UPLOAD", upload.file_name,
+        f"Uploaded {upload.file_name} ({norm_doc_type.replace('_', ' ').title()}): {upload.status}, {upload.parsed_rows} rows",
+        upload_id=upload.id, client_id=upload.client_id,
+    )
     db.commit()
     db.refresh(upload)
 
@@ -439,6 +452,7 @@ async def process_upload(
         upload.parsed_rows = count
         upload.validation_errors = json.dumps(errors)
         upload.status = "processed" if count > 0 else ("failed" if errors else "processed")
+        upload.processed_at = utcnow()
     else:
         invoice_source = "gstr" if norm_doc_type == "GSTR2B" else ("po" if norm_doc_type == "PURCHASE_ORDER" else "books")
         count = ingest_invoices(db, upload, invoice_source, rows_or_suppliers)
@@ -452,7 +466,13 @@ async def process_upload(
             upload.status = "parsed_with_warnings" if (errors or period_warnings) else "parsed"
         else:
             upload.status = "failed" if errors else "processed"
+        upload.processed_at = utcnow()
 
+    record_activity(
+        db, user, "PROCESS", upload.file_name,
+        f"Processed {upload.file_name}: {upload.status}, {upload.parsed_rows} rows",
+        upload_id=upload.id, client_id=upload.client_id,
+    )
     db.commit()
     db.refresh(upload)
     return {"upload": serialize_upload(db, upload)}
@@ -487,6 +507,8 @@ def delete_upload(
     ensure_client_scope(db, user, upload.client_id)
     db.query(Invoice).filter(Invoice.upload_id == upload.id).delete(synchronize_session=False)
     db.query(Supplier).filter(Supplier.upload_id == upload.id).delete(synchronize_session=False)
+    record_activity(db, user, "DELETE_UPLOAD", upload.file_name, f"Deleted {upload.file_name}",
+                    upload_id=upload.id, client_id=upload.client_id)
     db.delete(upload)
     db.commit()
     return {"message": "Upload deleted successfully."}
@@ -560,5 +582,6 @@ def serialize_upload(db: Session, upload: Upload) -> dict:
         "isReupload": bool(upload.is_reupload),
         "reuploadInvoiceId": upload.reupload_invoice_id or "",
         "reuploadNote": upload.reupload_note or "",
-        "createdAt": upload.created_at,
+        "createdAt": iso_utc(upload.created_at),
+        "processedAt": iso_utc(upload.processed_at),
     }

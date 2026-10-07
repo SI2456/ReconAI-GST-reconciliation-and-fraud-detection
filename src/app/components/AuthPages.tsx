@@ -47,11 +47,29 @@ export default function AuthPages({ initialRole, initialMode, onBackToLanding, o
   };
 
   const handleSignIn = async () => {
-    const result = await apiRequest<AuthResponse>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-      auth: false,
-    });
+    let result: AuthResponse;
+    try {
+      result = await apiRequest<AuthResponse>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        auth: false,
+      });
+    } catch (err) {
+      // Registered but never verified (e.g. the OTP screen was closed): send a fresh code and
+      // continue on the OTP screen instead of leaving the account stuck.
+      if (err instanceof Error && err.message.toLowerCase().includes("verify your email")) {
+        const resent = await apiRequest<{ message: string }>("/api/auth/resend-otp", {
+          method: "POST",
+          auth: false,
+          body: JSON.stringify({ email, purpose: "registration" }),
+        });
+        setOtp("");
+        setMode("verify");
+        setNotice(`Your email isn't verified yet. ${resent.message}`);
+        return;
+      }
+      throw err;
+    }
     const roleLabel = result.user.role === "ca" ? "Tax Officer" : result.user.role === "client" ? "Client" : "System Admin";
     if (result.user.role !== role) throw new Error(`This account is registered as ${roleLabel}. Select that role to continue.`);
     finishLogin(result);

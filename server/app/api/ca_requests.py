@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import ensure_client_scope, get_current_user, require_roles, scoped_client_ids
 from app.db.models import CAChangeRequest, Client, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 
 
 router = APIRouter()
@@ -34,7 +35,8 @@ def serialize_request(db: Session, item: CAChangeRequest) -> dict:
         "requestedCaName": requested_ca.name if requested_ca else "",
         "reason": item.reason,
         "status": item.status,
-        "createdAt": item.created_at,
+        "createdAt": iso_utc(item.created_at),
+        "reviewedAt": iso_utc(item.reviewed_at),
     }
 
 
@@ -96,7 +98,7 @@ def approve_request(request_id: str, db: Session = Depends(get_db), user: User =
     client.ca_id = item.requested_ca_id
     item.status = "Approved"
     item.reviewed_by = user.id
-    item.reviewed_at = datetime.utcnow()
+    item.reviewed_at = utcnow()
     db.commit()
     return {"message": "Tax officer change request approved."}
 
@@ -110,6 +112,6 @@ def reject_request(request_id: str, db: Session = Depends(get_db), user: User = 
         raise HTTPException(status_code=409, detail="Request has already been decided.")
     item.status = "Rejected"
     item.reviewed_by = user.id
-    item.reviewed_at = datetime.utcnow()
+    item.reviewed_at = utcnow()
     db.commit()
     return {"message": "Tax officer change request rejected."}

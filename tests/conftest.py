@@ -24,8 +24,9 @@ os.environ.update(
     R2_ENDPOINT_URL="",
     R2_ACCESS_KEY_ID="",
     R2_SECRET_ACCESS_KEY="",
+    GEMINI_API_KEY="",  # never call the real Gemini API (or use a real key) from tests
+    UPLOAD_DIR=str(_TMP / "uploads"),  # never write into the real server/data/uploads
 )
-# Local storage writes to ./server/data/uploads relative to the working directory.
 os.chdir(_TMP)
 sys.path.insert(0, str(ROOT / "server"))
 

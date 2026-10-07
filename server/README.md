@@ -32,7 +32,7 @@ copy .env.example .env
 Set your database connection URL in `.env`:
 * **Docker Compose (Default)**: `DATABASE_URL=postgresql+psycopg://reconai:reconai@localhost:5432/reconai`
 * **Local PostgreSQL**: `DATABASE_URL=postgresql+psycopg://<username>:<password>@localhost:5432/reconai`
-* **SQLite Mode**: `DATABASE_URL=sqlite:///./data/reconai-dev.sqlite3`
+* **SQLite Mode**: `DATABASE_URL=sqlite:///./server/data/reconai-dev.sqlite3`
 
 ---
 

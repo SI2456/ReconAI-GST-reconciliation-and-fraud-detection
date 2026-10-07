@@ -34,6 +34,8 @@ def main() -> None:
     add_column_if_missing("uploads", "tax_periods", "VARCHAR(255) DEFAULT ''")
     add_column_if_missing("uploads", "period_warnings", "TEXT DEFAULT '[]'")
     add_column_if_missing("uploads", "gstin_verification_status", "VARCHAR(40) DEFAULT 'valid'")
+    add_column_if_missing("uploads", "extracted_json", "TEXT DEFAULT ''")
+    add_column_if_missing("uploads", "processed_at", "TIMESTAMP")
 
     # Invoices canonical metadata columns
     add_column_if_missing("invoices", "recipient_gstin", "VARCHAR(20) DEFAULT ''")

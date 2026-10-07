@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import ensure_client_scope, get_current_user, scoped_client_ids
 from app.db.models import Message, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 
 
 router = APIRouter()
@@ -24,7 +25,7 @@ def serialize_message(message: Message) -> dict:
         "senderName": message.sender.name if message.sender else "",
         "senderRole": message.sender.role if message.sender else "",
         "text": message.text,
-        "createdAt": message.created_at,
+        "createdAt": iso_utc(message.created_at),
     }
 
 

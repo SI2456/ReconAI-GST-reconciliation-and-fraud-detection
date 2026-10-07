@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, Fragment } from "react";
+  import React, { useState, useRef, useEffect, useMemo, useCallback, Fragment } from "react";
 import {
   LayoutDashboard, Users, Upload, FileText, ShieldAlert, Share2,
   MessageSquare, BarChart3, Bell, Settings, ChevronRight, Search,
@@ -17,6 +17,7 @@ import {
 } from "recharts";
 
 import { apiRequest, openProtectedFile } from "./lib/api";
+import { formatIST } from "./lib/datetime";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { uploadMatchesPeriod, periodToMmYyyy, normalizePeriod, periodsMatch } from "./lib/periodUtils";
 
@@ -122,10 +123,7 @@ async function fetchAllData(onUpdate: () => void, selectedClientId?: string): Pr
       const rawDate = inv.created_at || inv.invoice_date || "";
       let formattedDate = inv.invoice_date || "";
       if (rawDate && rawDate.length > 10) {
-        try {
-          const d = new Date(rawDate);
-          formattedDate = d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
-        } catch (e) { }
+        formattedDate = formatIST(rawDate, formattedDate);
       }
       const rawSupp = inv.supplier || "";
       const cleanSupp = rawSupp || "Invoice Supplier";
@@ -1513,7 +1511,7 @@ function ClientDocumentsPage({
                 <th className="px-4 py-3 text-left">Tax Period(s) / FY</th>
                 <th className="px-4 py-3 text-left">Client & GSTIN</th>
                 <th className="px-4 py-3 text-left">Rows / Items</th>
-                <th className="px-4 py-3 text-left">Uploaded Date</th>
+                <th className="px-4 py-3 text-left">Uploaded / Processed (IST)</th>
                 <th className="px-4 py-3 text-right">Inspection Action</th>
               </tr>
             </thead>
@@ -1581,7 +1579,10 @@ function ClientDocumentsPage({
                       <span className="font-semibold text-foreground">{u.parsedRows ?? 0}</span> {rawType === "SUPPLIER_MASTER" ? "vendors" : "rows"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-[11px]">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "—"}
+                      <div>{formatIST(u.createdAt)}</div>
+                      {u.processedAt && (
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Processed {formatIST(u.processedAt)}</div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
@@ -1854,7 +1855,7 @@ function ReconciliationPage({
     setStatus(`Running 5-level rule engine + document matching for ${selectedPeriod}...`);
     setFraudSummaryMsg("");
     try {
-      const result = await apiRequest<{ summary: any; invoices: any[] }>("/api/reconciliation/run", {
+      const result = await apiRequest<{ summary: any; invoices: any[]; ranAt?: string }>("/api/reconciliation/run", {
         method: "POST",
         auth: true,
         body: JSON.stringify({ clientId: String(clientId), taxPeriod: selectedPeriod }),
@@ -1864,7 +1865,7 @@ function ReconciliationPage({
       setInvoiceResults(result.invoices || []);
       const fuzzy = s.fuzzyMatched ? ` (${s.fuzzyMatched} fuzzy)` : "";
       setStatus(
-        `✓ Rule engine complete: ${s.matched} matched${fuzzy}, ${s.mismatched} mismatched, ${s.missing} missing, ${s.duplicates} duplicates` +
+        `✓ Rule engine complete (${formatIST(result.ranAt ?? new Date())}): ${s.matched} matched${fuzzy}, ${s.mismatched} mismatched, ${s.missing} missing, ${s.duplicates} duplicates` +
         (s.rule_failures ? `, ${s.rule_failures} format/validation failures` : "") + "."
       );
       setFraudSummaryMsg("Reconciliation complete. Run the ML model on Fraud & Cases to score behavioral anomalies.");
@@ -2167,7 +2168,7 @@ function ReconciliationPage({
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground truncate">{fName}</p>
                               <p className="text-[10px] text-muted-foreground">
-                                {docType.replace(/_/g, " ")} • {rowsCount} rows • {u.uploadedAt ? new Date(u.uploadedAt).toLocaleDateString() : "Ready"}
+                                {docType.replace(/_/g, " ")} • {rowsCount} rows • {formatIST(u.createdAt || u.uploadedAt, "Ready")}
                               </p>
                             </div>
                           </div>
@@ -2857,6 +2858,7 @@ function FraudPage({
           reuploadNote: a.reuploadNote || a.reupload_note || "",
           reuploadedFileName: a.reuploadedFileName || a.reuploaded_file_name || "",
           reuploadedAt: a.reuploadedAt || a.reuploaded_at || "",
+          createdAt: a.createdAt || a.created_at || "",
           isReupload: Boolean(a.isReupload || a.is_reupload || a.reuploadStatus === "reuploaded" || a.reupload_status === "reuploaded"),
           score: riskScoreLabel(a.risk),
           amount: formatCurrency(a.amount),
@@ -3158,6 +3160,9 @@ function FraudPage({
                       <span className="text-xs font-mono font-bold text-foreground">
                         {alert.invoiceNo ? `Invoice ${alert.invoiceNo}` : `Case #${alert.id}`}
                       </span>
+                      {alert.createdAt && (
+                        <span className="text-[10px] text-muted-foreground">Flagged {formatIST(alert.createdAt)}</span>
+                      )}
                       {alert.sourceBatchFile && (
                         <span className="text-[10px] text-muted-foreground font-mono">
                           (from {alert.sourceBatchFile})
@@ -3190,7 +3195,7 @@ function FraudPage({
                     {(alert.reuploadStatus === "reuploaded" || alert.isReupload) && alert.reuploadedFileName && (
                       <div className="text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1 mt-1.5 flex items-center gap-1.5">
                         <CheckCircle2 size={12} className="shrink-0 text-emerald-500" />
-                        <span><strong>Client Replacement File:</strong> {alert.reuploadedFileName} {alert.reuploadedAt ? `(Uploaded ${String(alert.reuploadedAt).slice(0, 10)})` : ""}</span>
+                        <span><strong>Client Replacement File:</strong> {alert.reuploadedFileName} {alert.reuploadedAt ? `(Uploaded ${formatIST(alert.reuploadedAt)})` : ""}</span>
                       </div>
                     )}
                   </div>
@@ -3734,7 +3739,7 @@ function CaseSupportingNotesModal({
                   <div className="flex items-center justify-between">
                     <span className="font-semibold flex items-center gap-1"><User size={11} className="text-primary" /> {n.authorName}</span>
                     <span className="text-[10px] text-muted-foreground font-mono">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ""}
+                      {formatIST(n.createdAt, "")}
                     </span>
                   </div>
                   <p className="text-foreground text-[11px] leading-relaxed">{n.noteText}</p>
@@ -4396,6 +4401,17 @@ function AssistantPage() {
 function ReportsPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [status, setStatus] = useState("");
+  useEffect(() => {
+    apiRequest<{ reports: any[] }>("/api/reports", { auth: true })
+      .then(res => setReports((res.reports || []).map(r => ({
+        name: r.name,
+        date: formatIST(r.createdAt),
+        size: "Stored in backend",
+        type: r.type,
+        status: r.status,
+      }))))
+      .catch(() => { /* list stays empty; generating still works */ });
+  }, []);
   const generateReport = async () => {
     setStatus("Generating report...");
     try {
@@ -4406,7 +4422,7 @@ function ReportsPage() {
       });
       setReports(prev => [{
         name: result.report.name,
-        date: new Date().toLocaleDateString(),
+        date: formatIST(result.report.createdAt ?? new Date()),
         size: "Stored in backend",
         type: result.report.type,
         status: result.report.status,
@@ -4874,7 +4890,7 @@ function AdminPage() {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {["User / Name", "Email Address", "System Role", "Status", "Last Active", "Actions"].map(h => (
+              {["User / Name", "Email Address", "System Role", "Status", "Registered (IST)", "Actions"].map(h => (
                 <th key={h} className="text-left px-4 py-3 font-medium text-muted-foreground">{h}</th>
               ))}
             </tr>
@@ -4902,7 +4918,7 @@ function AdminPage() {
                 <td className="px-4 py-3">
                   <Badge label={u.status || "Active"} variant={u.status === "Active" || u.status === "active" ? "success" : "neutral"} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{u.last || u.createdAt || "Active now"}</td>
+                <td className="px-4 py-3 text-muted-foreground">{formatIST(u.createdAt)}</td>
                 <td className="px-4 py-3">
                   <button type="button" onClick={() => setNotice(`User details opened for ${u.email}`)} className="p-1 rounded hover:bg-muted text-muted-foreground">
                     <MoreHorizontal size={14} />
@@ -4988,7 +5004,7 @@ function AdminPage() {
                 const actStr = String(log.action || log.action_type || "activity").toUpperCase();
                 const actorEmail = log.actor || log.actor_id || log.user || "System User";
                 const roleStr = log.actorRole || (actorEmail.includes("admin") ? "System Admin" : actorEmail.includes("ca") ? "Tax Officer" : "Client");
-                const timestamp = log.created_at ? new Date(log.created_at).toLocaleString() : "Just now";
+                const timestamp = formatIST(log.createdAt || log.created_at);
 
                 return (
                   <tr key={log.id || idx} className="hover:bg-muted/40 transition-colors">

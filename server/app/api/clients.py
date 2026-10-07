@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_roles, scoped_client_ids
 from app.db.models import Client, FraudAlert, Invoice, Upload, User
 from app.db.session import get_db
+from app.core.timeutil import iso_utc, utcnow
 
 
 router = APIRouter()
@@ -55,7 +56,7 @@ def serialize_client(db: Session, client: Client) -> dict:
         "gstLegalName": client.gst_legal_name,
         "gstTradeName": client.gst_trade_name,
         "gstStatus": client.gst_status,
-        "gstVerifiedAt": client.gst_verified_at,
+        "gstVerifiedAt": iso_utc(client.gst_verified_at),
         "gstDetails": json.loads(client.gst_details_json) if client.gst_details_json else {},
         "email": client.email,
         "city": client.city,

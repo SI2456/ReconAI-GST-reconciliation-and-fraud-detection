@@ -2,7 +2,15 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-from app.core.config import settings
+from app.core.config import PROJECT_ROOT, settings
+
+
+def _local_storage() -> bool:
+    return not (settings.r2_endpoint_url and settings.r2_access_key_id and settings.r2_secret_access_key)
+
+
+def _uploads_root() -> Path:
+    return Path(settings.upload_dir).resolve()
 
 
 def r2_client():
@@ -16,8 +24,8 @@ def r2_client():
 
 
 def upload_bytes(object_key: str, content: bytes, content_type: str) -> str:
-    if not settings.r2_endpoint_url or not settings.r2_access_key_id or not settings.r2_secret_access_key:
-        root = Path("server/data/uploads").resolve()
+    if _local_storage():
+        root = _uploads_root()
         local_path = (root / object_key).resolve()
         if not local_path.is_relative_to(root):
             raise ValueError(f"Refusing to write outside the uploads directory: {object_key!r}")
@@ -32,11 +40,12 @@ def upload_bytes(object_key: str, content: bytes, content_type: str) -> str:
 
 def read_bytes(object_key: str) -> bytes:
     """Read back a previously stored object (local disk or R2)."""
-    if not settings.r2_endpoint_url or not settings.r2_access_key_id or not settings.r2_secret_access_key:
-        local_path = Path("server/data/uploads") / object_key
+    if _local_storage():
+        local_path = _uploads_root() / object_key
         if not local_path.exists():
-            # Older uploads may already store the full local path as the key.
-            local_path = Path(object_key)
+            # Older uploads may store a full path as the key, possibly relative to the project.
+            legacy = Path(object_key)
+            local_path = legacy if legacy.is_absolute() else PROJECT_ROOT / legacy
         return local_path.read_bytes()
 
     client = r2_client()

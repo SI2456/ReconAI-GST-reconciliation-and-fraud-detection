@@ -5,12 +5,21 @@ from pathlib import Path
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from app.core.config import settings
+from app.core.config import PROJECT_ROOT, settings
+
+
+def _sqlite_url(url: str) -> str:
+    """Resolve a relative SQLite path against the project folder, not the current directory."""
+    path = url[len("sqlite:///"):]
+    if path and path != ":memory:" and not Path(path).is_absolute():
+        resolved = (PROJECT_ROOT / path).resolve()
+        resolved.parent.mkdir(parents=True, exist_ok=True)
+        return f"sqlite:///{resolved.as_posix()}"
+    return url
 
 
 if settings.database_url.startswith("sqlite"):
-    Path("server/data").mkdir(parents=True, exist_ok=True)
-    engine = create_engine(settings.database_url, connect_args={"check_same_thread": False}, pool_pre_ping=True)
+    engine = create_engine(_sqlite_url(settings.database_url), connect_args={"check_same_thread": False}, pool_pre_ping=True)
 else:
     engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -50,6 +59,8 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "is_reupload": "BOOLEAN DEFAULT false",
         "reupload_invoice_id": "VARCHAR(80) DEFAULT ''",
         "reupload_note": "TEXT DEFAULT ''",
+        "extracted_json": "TEXT DEFAULT ''",
+        "processed_at": "TIMESTAMP",
     },
     "invoices": {
         "recipient_gstin": "VARCHAR(20) DEFAULT ''",

@@ -127,6 +127,11 @@ class Upload(Base):
     is_reupload: Mapped[bool] = mapped_column(Boolean, default=False)
     reupload_invoice_id: Mapped[str] = mapped_column(String(80), default="")
     reupload_note: Mapped[str] = mapped_column(Text, default="")
+    # Full structured result of the last AI extraction (reference_data/extract.py schema):
+    # addresses, line items, tax rates... everything that doesn't fit the invoice row.
+    extracted_json: Mapped[str] = mapped_column(Text, default="")
+    # When the file was last parsed / processed / AI-extracted (None until then).
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
