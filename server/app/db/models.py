@@ -132,6 +132,8 @@ class Upload(Base):
     extracted_json: Mapped[str] = mapped_column(Text, default="")
     # When the file was last parsed / processed / AI-extracted (None until then).
     processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # SHA-256 of the file, to recognise an exact re-upload of an already-claimed invoice.
+    file_sha256: Mapped[str] = mapped_column(String(64), default="", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
@@ -166,6 +168,11 @@ class Invoice(Base):
     # Extra occurrences of this invoice within the same uploaded file. The unique index keeps one
     # row per invoice, so repeats are counted here and reported as "Duplicate" by reconciliation.
     duplicate_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Level 7: the tax officer's ITC decision ("" / "approved" / "rejected").
+    itc_status: Mapped[str] = mapped_column(String(20), default="")
+    itc_decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    itc_decided_by: Mapped[str] = mapped_column(String(80), default="")
+    itc_reject_reason: Mapped[str] = mapped_column(Text, default="")
     reupload_status: Mapped[str] = mapped_column(String(40), default="")
     reupload_note: Mapped[str] = mapped_column(Text, default="")
     reuploaded_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

@@ -61,6 +61,7 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "reupload_note": "TEXT DEFAULT ''",
         "extracted_json": "TEXT DEFAULT ''",
         "processed_at": "TIMESTAMP",
+        "file_sha256": "VARCHAR(64) DEFAULT ''",
     },
     "invoices": {
         "recipient_gstin": "VARCHAR(20) DEFAULT ''",
@@ -76,6 +77,10 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "reuploaded_at": "TIMESTAMP",
         "reuploaded_file_name": "VARCHAR(255) DEFAULT ''",
         "duplicate_count": "INTEGER DEFAULT 0",
+        "itc_status": "VARCHAR(20) DEFAULT ''",
+        "itc_decided_at": "TIMESTAMP",
+        "itc_decided_by": "VARCHAR(80) DEFAULT ''",
+        "itc_reject_reason": "TEXT DEFAULT ''",
     },
     "fraud_alerts": {
         "reupload_status": "VARCHAR(40) DEFAULT ''",

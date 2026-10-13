@@ -33,6 +33,18 @@ def _db_timezone() -> tzinfo:
         return timezone.utc
 
 
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def format_ist(value) -> str:
+    """A database timestamp for messages, e.g. '07 Oct 2026, 10:05 PM IST'."""
+    iso = iso_utc(value)
+    if not iso:
+        return "an earlier date"
+    moment = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(IST)
+    return moment.strftime("%d %b %Y, %I:%M %p IST")
+
+
 def iso_utc(value) -> str | None:
     """A database timestamp as e.g. '2026-10-07T16:35:01Z' (None when missing)."""
     if value in (None, ""):

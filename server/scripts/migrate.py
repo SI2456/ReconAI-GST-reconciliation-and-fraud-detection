@@ -36,6 +36,11 @@ def main() -> None:
     add_column_if_missing("uploads", "gstin_verification_status", "VARCHAR(40) DEFAULT 'valid'")
     add_column_if_missing("uploads", "extracted_json", "TEXT DEFAULT ''")
     add_column_if_missing("uploads", "processed_at", "TIMESTAMP")
+    add_column_if_missing("uploads", "file_sha256", "VARCHAR(64) DEFAULT ''")
+    add_column_if_missing("invoices", "itc_status", "VARCHAR(20) DEFAULT ''")
+    add_column_if_missing("invoices", "itc_decided_at", "TIMESTAMP")
+    add_column_if_missing("invoices", "itc_decided_by", "VARCHAR(80) DEFAULT ''")
+    add_column_if_missing("invoices", "itc_reject_reason", "TEXT DEFAULT ''")
 
     # Invoices canonical metadata columns
     add_column_if_missing("invoices", "recipient_gstin", "VARCHAR(20) DEFAULT ''")

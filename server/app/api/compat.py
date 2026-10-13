@@ -20,6 +20,8 @@ from app.services.parsing import _to_float
 from app.services.storage import inline_disposition, read_bytes
 from app.core.timeutil import iso_utc, utcnow
 from app.services.audit import record_activity
+from app.services.itc import already_claimed_message, approved_claim_by_key, itc_decision
+from app.services.reconciliation import normalize_key
 
 
 router = APIRouter()
@@ -380,6 +382,8 @@ def _details(upload: Upload, invoice: Invoice | None, db: Session | None = None)
             "utgstAmount": _first(ext_tax.get("utgst_amount"), "0.00"),
             "totalTaxAmount": str(tot_tax),
         },
+        "invoiceId": invoice.id if invoice else None,
+        "itcDecision": itc_decision(db, invoice) if db is not None else None,
         "uploadedAt": iso_utc(upload.created_at),
         "processedAt": iso_utc(getattr(upload, "processed_at", None)),
         "rawJson": ext or preview.get("fileJson") or None,
@@ -461,6 +465,8 @@ def update_extraction_details(upload_id: str, payload: DetailsUpdate, db: Sessio
     if not upload and not invoice:
         raise HTTPException(status_code=404, detail="Upload or invoice not found.")
 
+    if invoice and invoice.itc_status == "approved":
+        raise HTTPException(status_code=409, detail="ITC for this invoice is already approved, so its details are locked.")
     if invoice:
         invoice.invoice_no = str(payload.invoiceInfo.get("invoiceNumber") or invoice.invoice_no).strip()
         invoice.invoice_date = str(payload.invoiceInfo.get("invoiceDate") or invoice.invoice_date).strip()
@@ -524,6 +530,9 @@ def rerun_ai_extraction(
             detail=f"{ENGINE_LABELS[engine]} couldn't read an invoice number and total from this document. "
                    "Check the document or ask the client to re-upload a clearer copy.",
         )
+    claimed = approved_claim_by_key(db, upload.client_id, normalize_key(row.invoice_no, row.supplier_gstin))
+    if claimed:
+        raise HTTPException(status_code=409, detail=already_claimed_message(claimed))
 
     # Same path as uploading: replace this upload's invoice row with the new reading.
     db.query(Invoice).filter(Invoice.upload_id == upload.id).delete(synchronize_session=False)

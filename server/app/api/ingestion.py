@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import uuid
@@ -5,6 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import ensure_client_scope, get_current_user, require_roles, scoped_client_ids
@@ -15,6 +17,12 @@ from app.services.parsing import derive_tax_period, parse_by_document_type, vali
 from app.services.readability import check_document_readability
 from app.core.timeutil import iso_utc, utcnow
 from app.services.audit import record_activity
+from app.services.itc import (
+    already_claimed_message,
+    approved_claim_by_file,
+    approved_claim_by_key,
+    itc_decision,
+)
 from app.services.reconciliation import normalize_key
 from app.services.storage import read_bytes, upload_bytes
 
@@ -123,6 +131,11 @@ def ingest_invoices(db: Session, upload: Upload, source: str, rows) -> int:
                 Invoice.normalized_key == row_norm_key,
                 Invoice.source == source,
             ).first()
+
+        if existing and existing.itc_status == "approved":
+            # ITC already approved: the claimed invoice's values are locked.
+            seen_in_file[row_norm_key] = existing
+            continue
 
         if existing:
             existing.supplier = row.supplier
@@ -307,6 +320,22 @@ async def upload_document(
         )
         if problem:
             raise HTTPException(status_code=422, detail=problem)
+
+    # A tax invoice whose ITC is already approved can't be claimed again: the same file, or
+    # the same supplier GSTIN + invoice number read from it.
+    file_sha256 = hashlib.sha256(content).hexdigest()
+    if norm_doc_type == "TAX_INVOICE":
+        claimed = approved_claim_by_file(db, clientId, file_sha256)
+        if not claimed:
+            pre_rows, _ = parse_by_document_type(
+                norm_doc_type, file.filename or "", file.content_type or "", content, parsed_periods
+            )
+            for pre in pre_rows:
+                claimed = approved_claim_by_key(db, clientId, normalize_key(pre.invoice_no, pre.supplier_gstin))
+                if claimed:
+                    break
+        if claimed:
+            raise HTTPException(status_code=409, detail=already_claimed_message(claimed))
     safe_filename = re.sub(r"[^A-Za-z0-9_.-]", "_", file.filename or "").lstrip(".") or "upload"
     object_key = f"clients/{clientId}/uploads/{upload_id}_{safe_filename}"
     upload_bytes(object_key, content, file.content_type or "application/octet-stream")
@@ -328,6 +357,7 @@ async def upload_document(
         period_warnings="[]",
         gstin_verification_status="valid",
         object_key=object_key,
+        file_sha256=file_sha256,
         status="uploaded",
         visible_to_client=False,
         is_reupload=is_reup,
@@ -532,6 +562,17 @@ def list_uploads(db: Session = Depends(get_db), user: User = Depends(get_current
     return {"uploads": [serialize_upload(db, upload) for upload in uploads]}
 
 
+def _tax_invoice_for_upload(db: Session, upload: Upload) -> Invoice | None:
+    if (upload.document_type or "").upper() != "TAX_INVOICE":
+        return None  # registers / GSTR-2B hold many invoices, not one decision
+    return (
+        db.query(Invoice)
+        .filter(or_(Invoice.upload_id == upload.id, Invoice.preview_upload_id == upload.id))
+        .order_by((Invoice.upload_id == upload.id).desc(), Invoice.id)
+        .first()
+    )
+
+
 def serialize_upload(db: Session, upload: Upload) -> dict:
     client = db.get(Client, upload.client_id)
     uploader = db.get(User, upload.uploaded_by)
@@ -584,4 +625,5 @@ def serialize_upload(db: Session, upload: Upload) -> dict:
         "reuploadNote": upload.reupload_note or "",
         "createdAt": iso_utc(upload.created_at),
         "processedAt": iso_utc(upload.processed_at),
+        "itc": itc_decision(db, _tax_invoice_for_upload(db, upload)),
     }

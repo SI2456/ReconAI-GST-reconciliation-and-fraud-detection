@@ -52,6 +52,12 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
 
+    # Tax officer assistant: "auto" (Gemini when GEMINI_API_KEY is set, else Ollama), "gemini" or
+    # "ollama". Gemini sends the data it reads to Google; Ollama keeps everything on this machine.
+    assistant_engine: str = "auto"
+    gemini_chat_model: str = ""  # empty: newest "flash" model available to the key
+    assistant_ollama_model: str = "llama3.1"  # needs tool calling (llama3.1, qwen2.5...)
+
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5vl:3b"
 

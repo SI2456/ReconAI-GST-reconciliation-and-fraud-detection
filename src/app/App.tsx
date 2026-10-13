@@ -18,6 +18,7 @@ import {
 
 import { apiRequest, openProtectedFile } from "./lib/api";
 import { formatIST } from "./lib/datetime";
+import { ItcBadge } from "./components/ItcStatus";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { uploadMatchesPeriod, periodToMmYyyy, normalizePeriod, periodsMatch } from "./lib/periodUtils";
 
@@ -60,7 +61,7 @@ type ClientRecord = { id: number | string; name: string; gstin: string; email?: 
 type InvoiceRecord = { id: string; supplier: string; gstin: string; date: string; taxable: string; gst: string; total: string; status: string; risk: string };
 type FraudAlert = { id: string; type: string; entity: string; risk: number; score: string; amount: string; reason: string; summary?: string; shap: string[]; riskBreakdown?: Array<{ label: string; points: number; note: string }> };
 type NotificationRecord = { id: number; type: "critical" | "warning" | "success" | "info"; title: string; msg: string; time: string; read: boolean };
-type ChatMessage = { role: "assistant" | "user"; text: string };
+type ChatMessage = { role: "assistant" | "user"; text: string; tools?: string[]; refused?: boolean; error?: boolean };
 
 // ── Data Store (populated from backend on login) ──────────────────────────
 let monthlyData: MonthlyDataPoint[] = [];
@@ -1561,6 +1562,7 @@ function ClientDocumentsPage({
                           <span>Unprocessed</span>
                         </span>
                       )}
+                      {u.itc && <div className="mt-1"><ItcBadge itc={u.itc} /></div>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-mono text-[11px] text-muted-foreground">
                       {u.taxPeriod ? (
@@ -4292,34 +4294,57 @@ function GraphPage() {
 
 // ── AI Assistant ────────────────────────────────────────────────────────────
 function AssistantPage() {
-  const [messages, setMessages] = useState(chatMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(chatMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [engine, setEngine] = useState<{ label: string; available: boolean; detail: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const suggestions: string[] = [];
-  const responses: Record<string, string> = {};
+  const suggestions = [
+    "What were last month's ITC claims for all my clients?",
+    "Which invoices are missing in GSTR-2B?",
+    "Show open high-risk fraud alerts",
+    "List all my clients with their compliance scores",
+    "Are there any circular trading rings?",
+  ];
 
-  const send = async () => {
-    if (!input.trim()) return;
-    const userMsg = input.trim();
+  useEffect(() => {
+    apiRequest<{ label: string; available: boolean; detail: string }>("/api/assistant/status", { auth: true })
+      .then(setEngine)
+      .catch(err => setEngine({ label: "Assistant", available: false, detail: err instanceof Error ? err.message : "" }));
+  }, []);
+
+  // Keep the conversation when switching to another page and back.
+  useEffect(() => { chatMessages = messages; }, [messages]);
+
+  const send = async (text?: string) => {
+    const userMsg = (text ?? input).trim();
+    if (!userMsg || loading) return;
+    // Earlier turns go along so follow-ups ("and only for Krunal?") make sense; errors are left out.
+    const history = messages.filter(m => !m.error).map(m => ({ role: m.role, text: m.text }));
     setMessages(m => [...m, { role: "user", text: userMsg }]);
     setInput("");
     setLoading(true);
     try {
-      const result = await apiRequest<{ answer: string }>("/api/assistant/ask", {
+      const result = await apiRequest<{ answer: string; refused: boolean; toolsUsed: { name: string }[] }>("/api/assistant/ask", {
         method: "POST",
         auth: true,
-        body: JSON.stringify({ clientId: getClientId(), question: userMsg }),
+        body: JSON.stringify({ question: userMsg, history }),
       });
-      setMessages(m => [...m, { role: "assistant", text: result.answer || "No assistant response was returned." }]);
+      setMessages(m => [...m, {
+        role: "assistant",
+        text: result.answer || "No answer was returned.",
+        refused: result.refused,
+        tools: [...new Set((result.toolsUsed || []).map(t => t.name))],
+      }]);
     } catch (err) {
-      const fallback = responses[userMsg] || (err instanceof Error ? err.message : `No assistant backend response for: "${userMsg}"`);
-      setMessages(m => [...m, { role: "assistant", text: fallback }]);
+      setMessages(m => [...m, { role: "assistant", text: err instanceof Error ? err.message : "The assistant is not available.", error: true }]);
     } finally {
       setLoading(false);
     }
   };
+
+  const toolLabel = (name: string) => name.replace(/^get_/, "").replace(/_/g, " ");
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
@@ -4332,22 +4357,30 @@ function AssistantPage() {
           </div>
           <div>
             <div className="text-sm font-semibold">ReconAI Assistant</div>
-            <div className="text-xs text-muted-foreground">Assistant backend not connected</div>
+            <div className="text-xs text-muted-foreground">Answers only from your clients' data in ReconAI, always up to date</div>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-muted-foreground rounded-full" />
-            <span className="text-xs text-muted-foreground">Not connected</span>
+          <div className="ml-auto flex items-center gap-1.5" title={engine?.detail || ""}>
+            <span className={`w-2 h-2 rounded-full ${engine?.available ? "bg-emerald-500" : engine ? "bg-amber-500" : "bg-muted-foreground"}`} />
+            <span className="text-xs text-muted-foreground">
+              {!engine ? "Checking…" : engine.available ? `Connected · ${engine.label}` : `Not available · ${engine.detail || engine.label}`}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="max-w-xl mx-auto mt-6 text-center text-sm text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Ask about your clients' GST data</p>
+            <p>ITC claims, reconciliation results, missing or mismatched invoices, fraud alerts, suppliers, circular trading and uploaded documents. Questions about anything else are not answered.</p>
+          </div>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
             <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${m.role === "assistant" ? "bg-primary" : "bg-muted"}`}>
               {m.role === "assistant" ? <Bot size={13} className="text-white" /> : <User size={13} className="text-muted-foreground" />}
             </div>
-            <div className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${m.role === "assistant" ? "bg-card border border-border" : "bg-primary text-primary-foreground"}`}>
+            <div className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${m.role === "user" ? "bg-primary text-primary-foreground" : m.error ? "bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-900/60 text-red-700 dark:text-red-400" : m.refused ? "bg-muted border border-border text-muted-foreground" : "bg-card border border-border"}`}>
               {m.text.split("\n").map((line, li) => (
                 <p key={li} className={li > 0 ? "mt-1.5" : ""}>
                   {line.split(/(\*\*[^*]+\*\*)/).map((part, pi) =>
@@ -4355,6 +4388,11 @@ function AssistantPage() {
                   )}
                 </p>
               ))}
+              {m.tools && m.tools.length > 0 && !m.refused && (
+                <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground flex flex-wrap items-center gap-1">
+                  <Database size={10} /> Looked up: {m.tools.map(toolLabel).join(", ")}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -4374,7 +4412,7 @@ function AssistantPage() {
       <div className="px-6 py-3 border-t border-border shrink-0">
         <div className="flex flex-wrap gap-2 mb-3">
           {suggestions.map(s => (
-            <button key={s} onClick={() => { setInput(s); }} className="text-[11px] bg-muted text-muted-foreground px-3 py-1 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors">{s}</button>
+            <button key={s} type="button" onClick={() => send(s)} disabled={loading} className="text-[11px] bg-muted text-muted-foreground px-3 py-1 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors">{s}</button>
           ))}
         </div>
         <div className="flex items-end gap-2">
@@ -4383,12 +4421,12 @@ function AssistantPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Ask about invoices, suppliers, compliance, fraud patterns…"
+              placeholder="Ask about your clients' ITC, invoices, reconciliation, fraud alerts…"
               rows={2}
               className="w-full resize-none px-3 py-2.5 text-sm bg-muted border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground/60"
             />
           </div>
-          <button onClick={send} disabled={!input.trim() || loading} className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-40">
+          <button type="button" onClick={() => send()} disabled={!input.trim() || loading} className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-40">
             <Send size={15} />
           </button>
         </div>
@@ -4398,87 +4436,197 @@ function AssistantPage() {
 }
 
 // ── Reports ────────────────────────────────────────────────────────────────
+type ItcReport = {
+  id: string; clientId: string; clientName: string; name: string; status: string;
+  period: string; periodCode: string; hasFile: boolean; generatedBy: string; createdAt: string | null;
+  sentAt: string | null; sentTo: string; emailed: boolean;
+  summary: {
+    booksInvoices?: number; booksGst?: number; itcAtRisk?: number;
+    approved?: { invoices: number; gst: number }; rejected?: { invoices: number; gst: number }; pending?: { invoices: number; gst: number };
+  };
+};
+
+function previousMonth(): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function ReportsPage() {
-  const [reports, setReports] = useState<any[]>([]);
-  const [status, setStatus] = useState("");
-  useEffect(() => {
-    apiRequest<{ reports: any[] }>("/api/reports", { auth: true })
-      .then(res => setReports((res.reports || []).map(r => ({
-        name: r.name,
-        date: formatIST(r.createdAt),
-        size: "Stored in backend",
-        type: r.type,
-        status: r.status,
-      }))))
-      .catch(() => { /* list stays empty; generating still works */ });
-  }, []);
-  const generateReport = async () => {
-    setStatus("Generating report...");
+  const [reports, setReports] = useState<ItcReport[]>([]);
+  const [clientId, setClientId] = useState<string>(String(getClientId() || ""));
+  const [month, setMonth] = useState(previousMonth());
+  const [busy, setBusy] = useState<string>("");  // "generate" or a report id
+  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null);
+  const [sending, setSending] = useState<{ id: string; note: string } | null>(null);
+
+  const load = () =>
+    apiRequest<{ reports: ItcReport[] }>("/api/reports", { auth: true })
+      .then(res => setReports(res.reports || []))
+      .catch(err => setNotice({ text: err instanceof Error ? err.message : "Couldn't load reports.", error: true }));
+  useEffect(() => { load(); }, []);
+
+  const fail = (err: unknown, fallback: string) => setNotice({ text: err instanceof Error ? err.message : fallback, error: true });
+
+  const generate = async () => {
+    if (!clientId || !month) return;
+    setBusy("generate");
+    setNotice(null);
     try {
-      const result = await apiRequest<{ report: any }>("/api/reports", {
-        method: "POST",
-        auth: true,
-        body: JSON.stringify({ clientId: getClientId(), type: "PDF" }),
+      const res = await apiRequest<{ report: ItcReport }>("/api/reports", {
+        method: "POST", auth: true, body: JSON.stringify({ clientId, period: month }),
       });
-      setReports(prev => [{
-        name: result.report.name,
-        date: formatIST(result.report.createdAt ?? new Date()),
-        size: "Stored in backend",
-        type: result.report.type,
-        status: result.report.status,
-      }, ...prev]);
-      setStatus("Report generated successfully.");
+      setReports(prev => [res.report, ...prev]);
+      setNotice({ text: `${res.report.name} is ready. Open it to check, then send it to the client.` });
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Report generation failed.");
+      fail(err, "Report generation failed.");
+    } finally {
+      setBusy("");
     }
   };
 
+  const open = (r: ItcReport) => openProtectedFile(`/api/reports/${r.id}/file`).catch(err => fail(err, "Couldn't open the report."));
+
+  const send = async () => {
+    if (!sending) return;
+    setBusy(sending.id);
+    try {
+      const res = await apiRequest<{ report: ItcReport; message: string }>(`/api/reports/${sending.id}/send`, {
+        method: "POST", auth: true, body: JSON.stringify({ note: sending.note }),
+      });
+      setReports(prev => prev.map(r => (r.id === res.report.id ? res.report : r)));
+      setNotice({ text: res.message });
+      setSending(null);
+    } catch (err) {
+      fail(err, "Sending failed.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const remove = async (r: ItcReport) => {
+    if (!window.confirm(`Delete "${r.name}"? It hasn't been sent to the client.`)) return;
+    setBusy(r.id);
+    try {
+      await apiRequest(`/api/reports/${r.id}`, { method: "DELETE", auth: true });
+      setReports(prev => prev.filter(x => x.id !== r.id));
+    } catch (err) {
+      fail(err, "Delete failed.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const stats = [
+    { label: "Total reports", value: reports.length },
+    { label: "Generated this month", value: reports.filter(r => (r.createdAt || "").slice(0, 7) === thisMonth).length },
+    { label: "Sent to clients", value: reports.filter(r => r.sentAt).length },
+    { label: "Not sent yet", value: reports.filter(r => r.hasFile && !r.sentAt).length },
+  ];
+
   return (
     <div className="p-6 space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Reports</h2>
-          <p className="text-xs text-muted-foreground">Audit-ready PDF and Excel reports with AI explanations</p>
-        </div>
-        <button type="button" onClick={generateReport} className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors">
-          <Plus size={12} /> Generate Report
-        </button>
+      <div>
+        <h2 className="text-lg font-semibold">Reports</h2>
+        <p className="text-xs text-muted-foreground">Monthly ITC reports: every approved and rejected ITC claim, purchase register vs GSTR-2B, ready to send to the client as a PDF</p>
       </div>
-      {status && <div className="text-xs text-primary bg-accent border border-border rounded-md px-3 py-2">{status}</div>}
+
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="text-sm font-medium mb-3">Generate an ITC report</div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs space-y-1">
+            <span className="block text-muted-foreground">Client</span>
+            <select value={clientId} onChange={e => setClientId(e.target.value)}
+              className="min-w-[14rem] bg-muted border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/40">
+              {clients.length === 0 && <option value="">No clients</option>}
+              {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}{c.gstin && !c.gstin.startsWith("PENDING") ? ` · ${c.gstin}` : ""}</option>)}
+            </select>
+          </label>
+          <label className="text-xs space-y-1">
+            <span className="block text-muted-foreground">Tax period (month)</span>
+            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+              className="bg-muted border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/40" />
+          </label>
+          <button type="button" onClick={generate} disabled={!clientId || !month || busy === "generate"}
+            className="flex items-center gap-1.5 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50">
+            {busy === "generate" ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Generate PDF report
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2">Includes each ITC approval and rejection with reasons, invoices awaiting a decision, the purchase register, GSTR-2B and the invoice-by-invoice comparison.</p>
+      </div>
+
+      {notice && (
+        <div className={`text-xs border rounded-md px-3 py-2 ${notice.error ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900/60" : "text-primary bg-accent border-border"}`}>
+          {notice.text}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total Reports", value: reports.length.toLocaleString() },
-          { label: "This Month", value: "0" },
-          { label: "PDF Reports", value: reports.filter(r => r.type === "PDF").length.toLocaleString() },
-          { label: "Excel Reports", value: reports.filter(r => r.type === "Excel").length.toLocaleString() },
-        ].map(s => (
+        {stats.map(s => (
           <div key={s.label} className="bg-card border border-border rounded-lg p-4">
-            <div className="text-2xl font-semibold font-mono">{s.value}</div>
+            <div className="text-2xl font-semibold font-mono">{s.value.toLocaleString()}</div>
             <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <div className="text-sm font-medium">Recent Reports</div>
-        </div>
+        <div className="px-4 py-3 border-b border-border text-sm font-medium">Reports</div>
         <div className="divide-y divide-border">
-          {reports.map((r, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
-              <div className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold font-mono ${r.type === "PDF" ? "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"}`}>{r.type}</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium truncate">{r.name}</div>
-                <div className="text-[11px] text-muted-foreground">{r.date} · {r.size}</div>
+          {reports.map(r => (
+            <div key={r.id} className="px-4 py-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold font-mono bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 shrink-0">PDF</div>
+                <div className="flex-1 min-w-[12rem]">
+                  <div className="text-xs font-medium truncate">{r.period ? `${r.clientName} · ${r.period}` : r.name}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Generated {formatIST(r.createdAt)}{r.generatedBy ? ` by ${r.generatedBy}` : ""}
+                    {r.summary?.approved && (
+                      <> · <span className="text-emerald-600 dark:text-emerald-400">{r.summary.approved.invoices} approved</span>
+                        {" · "}<span className="text-red-600 dark:text-red-400">{r.summary.rejected?.invoices ?? 0} rejected</span>
+                        {" · "}{r.summary.pending?.invoices ?? 0} awaiting</>
+                    )}
+                  </div>
+                </div>
+                {r.sentAt
+                  ? <Badge label={`Sent ${formatIST(r.sentAt)}${r.emailed ? " · emailed" : ""}`} variant="success" />
+                  : r.hasFile ? <Badge label="Not sent" variant="warning" /> : <Badge label="No file (older report)" variant="neutral" />}
+                {r.hasFile && (
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => open(r)} className="flex items-center gap-1 text-xs border border-border bg-card px-2.5 py-1 rounded hover:bg-muted transition-colors"><Eye size={11} /> Open</button>
+                    <button type="button" onClick={() => setSending({ id: r.id, note: "" })} disabled={busy === r.id}
+                      className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2.5 py-1 rounded hover:bg-primary/90 transition-colors disabled:opacity-50">
+                      <Send size={11} /> {r.sentAt ? "Send again" : "Send to client"}
+                    </button>
+                    {!r.sentAt && (
+                      <button type="button" onClick={() => remove(r)} disabled={busy === r.id} aria-label="Delete report"
+                        className="p-1.5 text-muted-foreground border border-border rounded hover:bg-muted hover:text-red-600 transition-colors"><Trash2 size={11} /></button>
+                    )}
+                  </div>
+                )}
               </div>
-              {r.status === "Generating"
-                ? <Badge label="Generating…" variant="info" />
-                : <button type="button" onClick={() => setStatus(`${r.name} is ready in backend report storage.`)} className="flex items-center gap-1 text-xs border border-border bg-card px-2.5 py-1 rounded hover:bg-muted transition-colors"><Download size={11} /> Download</button>
-              }
+              {sending?.id === r.id && (
+                <div className="ml-11 border border-border rounded-md p-3 bg-muted/40 space-y-2">
+                  <div className="text-xs">
+                    Send the <b>{r.period}</b> report to <b>{r.clientName}</b>? It appears in their dashboard and chat, and is emailed to them as a PDF when email is set up.
+                  </div>
+                  <textarea value={sending.note} onChange={e => setSending({ ...sending, note: e.target.value })} rows={2} maxLength={1000}
+                    placeholder="Optional note to the client, e.g. which rejected invoices to correct"
+                    className="w-full resize-none px-2.5 py-1.5 text-xs bg-card border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={send} disabled={busy === r.id}
+                      className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 disabled:opacity-50">
+                      {busy === r.id ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} Send
+                    </button>
+                    <button type="button" onClick={() => setSending(null)} className="text-xs border border-border bg-card px-3 py-1.5 rounded hover:bg-muted">Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-          {reports.length === 0 && <EmptyState message="No reports generated yet." />}
+          {reports.length === 0 && <EmptyState message="No reports yet. Choose a client and month above to generate one." />}
         </div>
       </div>
     </div>

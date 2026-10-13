@@ -1,41 +1,45 @@
-import httpx
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.api.deps import ensure_client_scope, get_current_user
-from app.db.models import FraudAlert, Invoice, User
+from app.api.deps import require_roles
+from app.db.models import User
 from app.db.session import get_db
-from app.services.rag import ask_ollama
+from app.services.assistant import AssistantUnavailable, ask as ask_assistant, engine_status
+from app.services.assistant_tools import AssistantContext
 
 
 router = APIRouter()
 
 
+class ChatMessage(BaseModel):
+    role: str
+    text: str
+
+
 class AskRequest(BaseModel):
-    clientId: str | int
-    question: str
+    question: str = Field(min_length=1, max_length=2000)
+    # Earlier turns of this chat, so follow-ups like "and only for Krunal?" work.
+    history: list[ChatMessage] = Field(default_factory=list, max_length=50)
+    clientId: str | int | None = None  # accepted for older clients; the assistant covers all clients
+
+
+@router.get("/status")
+def status(user: User = Depends(require_roles("ca", "admin"))) -> dict:
+    return engine_status()
 
 
 @router.post("/ask")
-async def ask(payload: AskRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
-    ensure_client_scope(db, user, payload.clientId)
-    invoices = db.query(Invoice).filter(Invoice.client_id == str(payload.clientId)).limit(20).all()
-    alerts = db.query(FraudAlert).filter(FraudAlert.client_id == str(payload.clientId)).limit(20).all()
-    context = "\n".join(
-        [f"Invoice {item.invoice_no}: {item.status}, total {item.total}, supplier {item.supplier}" for item in invoices]
-        + [f"Alert {item.id}: risk {item.risk}, {item.reason}" for item in alerts]
-    )
+def ask(payload: AskRequest, db: Session = Depends(get_db), user: User = Depends(require_roles("ca", "admin"))) -> dict:
+    """Answer a tax officer's question from the data in their own workspace only."""
+    ctx = AssistantContext(db=db, user=user)
     try:
-        return {"answer": await ask_ollama(payload.question, context)}
-    except httpx.HTTPError:
-        invoice_count = len(invoices)
-        alert_count = len(alerts)
-        high_risk = len([alert for alert in alerts if alert.risk >= 70])
-        return {
-            "answer": (
-                "Ollama is not running, so I used the local ReconAI database context. "
-                f"This client currently has {invoice_count} invoice records, {alert_count} fraud alerts, "
-                f"and {high_risk} high-risk alerts. Start Ollama to enable full natural-language RAG answers."
-            )
-        }
+        reply = ask_assistant(ctx, payload.question.strip(), [m.model_dump() for m in payload.history])
+    except AssistantUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "answer": reply.answer,
+        "refused": reply.refused,
+        "engine": reply.engine,
+        "toolsUsed": reply.tools_used,
+    }

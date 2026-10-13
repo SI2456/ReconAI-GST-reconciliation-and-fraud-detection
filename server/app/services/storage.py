@@ -53,6 +53,17 @@ def read_bytes(object_key: str) -> bytes:
     return response["Body"].read()
 
 
+def delete_object(object_key: str) -> None:
+    """Remove a stored object (local disk or R2); a missing object is not an error."""
+    if _local_storage():
+        root = _uploads_root()
+        local_path = (root / object_key).resolve()
+        if local_path.is_relative_to(root):
+            local_path.unlink(missing_ok=True)
+        return
+    r2_client().delete_object(Bucket=settings.r2_bucket, Key=object_key)
+
+
 def get_bytes(object_key: str) -> tuple[bytes, str]:
     import mimetypes
     data = read_bytes(object_key)

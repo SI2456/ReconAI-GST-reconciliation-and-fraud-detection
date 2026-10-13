@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { apiRequest, fetchFileObjectUrl } from "../lib/api";
 import { formatIST } from "../lib/datetime";
+import { ItcDecisionPanel, type ItcDecision } from "./ItcStatus";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export function getDynamicDocumentHeader(data: VerificationDetails): { title: string; subtitle: string; categoryKey: string } {
@@ -197,6 +198,7 @@ interface VerificationDetails {
   rawCsvText?: string;
   uploadedAt?: string;   // UTC ISO timestamps from the API, shown in IST
   processedAt?: string;
+  itcDecision?: ItcDecision | null;  // Level 7: tax officer's ITC decision
   rawJson?: any;
   sourceBatchFile?: string;
   invoiceId?: string;
@@ -2135,6 +2137,10 @@ export default function DocumentVerificationModal({
   const [showEngineModal, setShowEngineModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<"gemini" | "ollama">("gemini");
   const [manualTaxOverrides, setManualTaxOverrides] = useState<Record<string, boolean>>({});
+
+  // Level 7 applies to a single tax invoice that has an invoice record.
+  const isItcDocument = Boolean(data?.invoiceId) && data?.invoiceInfo?.invoiceType === "TAX_INVOICE";
+  const isInvoiceMatched = (data?.reconciliationStatus || "").toLowerCase() === "matched";
 
   const isCsvDoc = Boolean(
     data?.isCsv ||
@@ -4275,7 +4281,7 @@ export default function DocumentVerificationModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 relative">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${isItcDocument ? "md:grid-cols-7" : "md:grid-cols-6"} gap-3 relative`}>
                   {fraudReport.levels.map((lvl) => {
                     const isPassed = lvl.status === "PASS";
                     const isStoppedHere = fraudReport.stoppedLevel === lvl.levelNumber;
@@ -4342,6 +4348,38 @@ export default function DocumentVerificationModal({
                       </button>
                     );
                   })}
+                  {isItcDocument && (() => {
+                    const itc = data.itcDecision;
+                    const state = itc?.status === "approved" ? { label: "APPROVED", tone: "emerald", note: formatIST(itc.decidedAt) }
+                      : itc?.status === "rejected" ? { label: "REJECTED", tone: "red", note: formatIST(itc.decidedAt) }
+                        : !fraudReport.allPassed ? { label: "LOCKED", tone: "slate", note: "Pass levels 1–6 first" }
+                          : !isInvoiceMatched ? { label: "WAITING", tone: "amber", note: "Run reconciliation" }
+                            : { label: "DECIDE", tone: "sky", note: "Approve or reject ITC" };
+                    const tones: Record<string, string> = {
+                      emerald: "text-emerald-400 border-emerald-500/50 bg-emerald-500/10",
+                      red: "text-red-400 border-red-500/50 bg-red-500/15",
+                      slate: "text-slate-400 border-slate-600 bg-slate-800/40",
+                      amber: "text-amber-400 border-amber-500/50 bg-amber-500/10",
+                      sky: "text-sky-400 border-sky-500/50 bg-sky-500/10",
+                    };
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("itc-level-7")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                        className="text-left p-3.5 rounded-xl border bg-[#090D18] border-[#1E293B] hover:border-slate-700 transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold text-xs border ${tones[state.tone]}`}>7</div>
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-black font-mono border ${tones[state.tone]}`}>{state.label}</span>
+                          </div>
+                          <div className="text-[11px] font-bold text-slate-100 uppercase tracking-tight leading-tight">Tax Officer ITC Decision</div>
+                          <div className="text-[10px] text-slate-400 leading-tight mt-1">Review levels 1–6 and approve or reject</div>
+                        </div>
+                        <div className="mt-3 pt-2 border-t border-[#1E293B] text-[10px] font-mono text-slate-400 truncate">{state.note}</div>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -4391,6 +4429,38 @@ export default function DocumentVerificationModal({
                           : "Format, GSTIN validation, HSN/SAC classification, math calculation, Books↔GSTR-2B reconciliation, and 3-way purchase record cross-reconciliations completed with 0 anomalies."}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* ── Level 7: tax officer's ITC decision ─────────────────────────────── */}
+              {isItcDocument && (
+                <div id="itc-level-7">
+                  <ItcDecisionPanel
+                    invoiceId={data.invoiceId}
+                    invoice={{
+                      number: data.invoiceInfo?.invoiceNumber || "",
+                      supplier: data.supplierInfo?.supplierName || "",
+                      supplierGstin: data.supplierInfo?.supplierGstin || "",
+                      taxable: `₹${parseNumber(data.productInfo?.taxableAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+                      gst: `₹${parseNumber(data.taxInfo?.totalTaxAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+                      total: `₹${parseNumber(data.productInfo?.grandTotal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+                    }}
+                    levels={fraudReport.levels.map(l => ({
+                      levelNumber: l.levelNumber,
+                      title: l.title,
+                      status: l.status,
+                      items: l.items.map(i => ({ name: i.name, received: i.received, status: i.status })),
+                    }))}
+                    allPassed={fraudReport.allPassed}
+                    isMatched={isInvoiceMatched}
+                    decision={data.itcDecision}
+                    onDecided={async () => {
+                      const target = data.uploadId || data.id || documentId;
+                      const fresh = await apiRequest<{ details: VerificationDetails }>(`/api/extract/details/${target}`, { auth: true });
+                      if (fresh?.details) setData(fresh.details);
+                      onRefresh?.();
+                    }}
+                  />
                 </div>
               )}
 
