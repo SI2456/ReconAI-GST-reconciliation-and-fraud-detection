@@ -34,6 +34,7 @@ Today is {today}. Amounts are in Indian Rupees (₹).
 
 Rules:
 1. Answer ONLY from the results of the tools. Call a tool for every question, including follow-ups.
+   When a question needs several tools, request them all together in one step, not one after another.
 2. If no tool can answer the question (general knowledge, people, news, coding, opinions, GST law
    questions unrelated to the officer's data, anything else), do not call a tool and reply exactly:
    OUT_OF_SCOPE
@@ -87,45 +88,97 @@ def engine_status() -> dict:
 # ── engines: each turns (system, conversation, tools) into text or tool calls ───
 
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta"
-_GEMINI_BUSY = {429, 500, 503}  # overloaded / rate limited: worth retrying or trying another model
+_GEMINI_RETRY = {500, 503}  # briefly overloaded: one quick retry on the same model
+_GEMINI_NEXT_MODEL = {404, 429}  # retired model / this model's quota used up: go straight to the next model
 _gemini_models_cache: list[str] | None = None
 
 
 def _gemini_models(client: httpx.Client) -> list[str]:
-    """Models to try in order: the configured one, else this key's 'flash' text models, newest first."""
+    """Models to try in order. 'Flash-lite' models first: in testing they answered the officer's
+    questions correctly in ~2 s, while the full 'flash' models took 10-40 s and were often
+    overloaded or over quota. A full flash model stays as the last fallback; GEMINI_CHAT_MODEL,
+    when set, is tried first."""
     global _gemini_models_cache
-    if settings.gemini_chat_model:
-        return [settings.gemini_chat_model]
-    if _gemini_models_cache:
-        return _gemini_models_cache
-    try:
-        models = client.get(f"{_GEMINI_URL}/models", params={"pageSize": 200}).json().get("models", [])
-    except (httpx.HTTPError, ValueError):
-        models = []
-    skip = ("image", "tts", "audio", "live", "embedding", "vision", "thinking", "exp", "preview")
-    names = [
-        m["name"].removeprefix("models/") for m in models
-        if "generateContent" in m.get("supportedGenerationMethods", [])
-        and "flash" in m.get("name", "") and not any(s in m["name"] for s in skip)
-    ]
-    _gemini_models_cache = sorted(set(names), key=_version_key, reverse=True)[:3] or ["gemini-2.5-flash"]
-    return _gemini_models_cache
+    if _gemini_models_cache is None:
+        try:
+            models = client.get(f"{_GEMINI_URL}/models", params={"pageSize": 200}).json().get("models", [])
+        except (httpx.HTTPError, ValueError):
+            models = []
+        skip = ("image", "tts", "audio", "live", "embedding", "vision", "thinking", "exp", "preview", "omni", "latest")
+        names = {
+            m["name"].removeprefix("models/") for m in models
+            if "generateContent" in m.get("supportedGenerationMethods", [])
+            and "flash" in m.get("name", "") and not any(s in m["name"] for s in skip)
+        }
+        newest = lambda items: sorted(items, key=_version_key, reverse=True)  # noqa: E731
+        lite = newest(n for n in names if "lite" in n)[:2]
+        full = newest(n for n in names if "lite" not in n)[:1]
+        _gemini_models_cache = (lite + full) or ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    pinned = settings.gemini_chat_model
+    return [pinned] + [m for m in _gemini_models_cache if m != pinned] if pinned else _gemini_models_cache
+
+
+# Google's response time for a model changes from minute to minute (the same model measured
+# ~1 s and ~8 s per call within an hour), so models are tried fastest-first by recent measurements.
+_LATENCY_TTL = 600  # seconds before a measurement is forgotten and the model gets a fresh chance
+_LATENCY_PENALTY = 30.0  # recorded for a timeout, an overload or a used-up quota
+_latency: dict[str, tuple[float, float]] = {}  # model -> (average seconds per call, when measured)
+
+
+def _expected_latency(model: str) -> float:
+    prior = 2.0 if "lite" in model else 8.0  # until measured: lite models are usually far faster
+    if model not in _latency:
+        return prior
+    average, measured_at = _latency[model]
+    if time.monotonic() - measured_at > _LATENCY_TTL:
+        # An old slow measurement no longer counts against the model, but a model that was fast
+        # keeps its place, so coming back after a break doesn't start with a slow model again.
+        return min(prior, average)
+    return average
+
+
+def _record_latency(model: str, seconds: float) -> None:
+    previous = _latency.get(model)
+    fresh = previous and time.monotonic() - previous[1] <= _LATENCY_TTL
+    _latency[model] = ((previous[0] + seconds) / 2 if fresh else seconds, time.monotonic())
+
+
+def _drop_model(model: str) -> None:
+    """Forget a model Google says no longer exists, so later questions don't try it again."""
+    if _gemini_models_cache and model in _gemini_models_cache and len(_gemini_models_cache) > 1:
+        _gemini_models_cache.remove(model)
 
 
 def _thinking_config(model: str) -> dict:
-    """Light 'thinking' on Gemini 3+ models: picking a data tool needs little reasoning, and the
-    default level made each step several times slower in testing."""
-    return {"thinkingConfig": {"thinkingLevel": "low"}} if _version_key(model)[0] >= (3,) else {}
+    """As little 'thinking' as each model allows: picking a data tool needs little reasoning and
+    more thinking made each step several times slower in testing."""
+    if _version_key(model)[0] < (3,):
+        return {}
+    return {"thinkingConfig": {"thinkingLevel": "minimal" if "lite" in model else "low"}}
 
 
 def _version_key(name: str) -> tuple:
     digits = "".join(ch if ch.isdigit() or ch == "." else " " for ch in name).split()
     version = tuple(int(p) for p in digits[0].split(".") if p) if digits else (0,)
-    return version, "lite" not in name  # newest first, full flash over flash-lite
+    return version, "lite" not in name
 
 
-GEMINI_STEP_TIMEOUT = 40  # seconds to wait for one Gemini reply before trying the next model
+GEMINI_STEP_TIMEOUT = 20  # seconds to wait for one Gemini reply before trying the next model
 QUESTION_TIME_BUDGET = 150  # seconds for a whole question (all steps), so the screen never hangs
+
+
+_shared_client: httpx.Client | None = None
+_shared_key = ""
+
+
+def _gemini_client() -> httpx.Client:
+    """One connection pool for all questions: a new client per question meant a new TLS
+    handshake to Google every time."""
+    global _shared_client, _shared_key
+    if _shared_client is None or _shared_key != settings.gemini_api_key:
+        _shared_client = httpx.Client(timeout=GEMINI_STEP_TIMEOUT, headers={"x-goog-api-key": settings.gemini_api_key})
+        _shared_key = settings.gemini_api_key
+    return _shared_client
 
 
 class GeminiBusy(httpx.HTTPError):
@@ -136,7 +189,7 @@ class _Gemini:
     name = "gemini"
 
     def __init__(self) -> None:
-        self.client = httpx.Client(timeout=GEMINI_STEP_TIMEOUT, headers={"x-goog-api-key": settings.gemini_api_key})
+        self.client = _gemini_client()
         self.declarations = [
             {"name": t["name"], "description": t["description"], "parameters": t["parameters"]}
             if t["parameters"].get("properties") else {"name": t["name"], "description": t["description"]}
@@ -154,43 +207,60 @@ class _Gemini:
         return contents + [{"role": "user", "parts": [{"text": question}]}]
 
     def _attempts(self) -> list[tuple[str, int]]:
-        """(model, seconds to wait first): the model that already answered in this question first,
-        then each model with one quick retry for a 503."""
+        """(model, seconds to wait first): a model pinned in GEMINI_CHAT_MODEL, then the fastest
+        recently; the model that already answered in this question goes first; one quick retry for a 503."""
         models = _gemini_models(self.client)
+        pinned = [m for m in models[:1] if m == settings.gemini_chat_model]
+        models = pinned + sorted((m for m in models if m not in pinned), key=_expected_latency)
         if self.working_model in models:
             models = [self.working_model] + [m for m in models if m != self.working_model]
         return [(model, wait) for model in models for wait in (0, 2)]
 
+    def _post(self, model: str, body: dict, timeout: float) -> httpx.Response:
+        url = f"{_GEMINI_URL}/models/{model}:generateContent"
+        limit = httpx.Timeout(timeout, connect=10)
+        response = self.client.post(url, json=body | {"generationConfig": body["generationConfig"] | _thinking_config(model)}, timeout=limit)
+        if response.status_code == 400 and "thinking" in response.text.lower():
+            # This model doesn't accept that thinking setting: ask again with its default.
+            response = self.client.post(url, json=body, timeout=limit)
+        return response
+
     def step(self, system: str, contents: list) -> tuple[str, list[tuple[str, dict]], dict]:
-        response, problem = None, ""
-        skip_model = None
+        body = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": contents,
+            "tools": [{"functionDeclarations": self.declarations}],
+            "generationConfig": {"temperature": 0},
+        }
+        response, problem, skip = None, "", set()
         for model, wait in self._attempts():
-            if model == skip_model:
+            if model in skip:
                 continue
             remaining = self.deadline - time.monotonic() - wait
             if remaining < 5:
                 break
             time.sleep(wait)
-            body = {
-                "systemInstruction": {"parts": [{"text": system}]},
-                "contents": contents,
-                "tools": [{"functionDeclarations": self.declarations}],
-                "generationConfig": {"temperature": 0} | _thinking_config(model),
-            }
+            started = time.monotonic()
             try:
-                response = self.client.post(
-                    f"{_GEMINI_URL}/models/{model}:generateContent", json=body,
-                    timeout=httpx.Timeout(min(GEMINI_STEP_TIMEOUT, remaining), connect=10),
-                )
+                response = self._post(model, body, min(GEMINI_STEP_TIMEOUT, remaining))
             except httpx.TimeoutException:
+                _record_latency(model, _LATENCY_PENALTY)
                 # Too slow right now: don't wait on the same model again, try the next one.
-                problem, response, skip_model = f"{model} did not reply within {int(min(GEMINI_STEP_TIMEOUT, remaining))}s", None, model
+                problem, response = f"{model} did not reply within {int(min(GEMINI_STEP_TIMEOUT, remaining))}s", None
+                skip.add(model)
                 continue
-            if response.status_code in _GEMINI_BUSY:
+            _record_latency(model, time.monotonic() - started if response.status_code < 400 else _LATENCY_PENALTY)
+            if response.status_code in _GEMINI_NEXT_MODEL:
+                problem = _gemini_error(response)
+                skip.add(model)
+                if response.status_code == 404:
+                    _drop_model(model)
+                continue
+            if response.status_code in _GEMINI_RETRY:
                 problem = _gemini_error(response)
                 continue
             break
-        if response is None or response.status_code in _GEMINI_BUSY:
+        if response is None or response.status_code in _GEMINI_RETRY | _GEMINI_NEXT_MODEL:
             raise GeminiBusy(f"Gemini is busy or slow right now ({problem or 'no time left'}). Please try again in a minute.")
         if response.status_code >= 400:
             raise httpx.HTTPStatusError(_gemini_error(response), request=response.request, response=response)

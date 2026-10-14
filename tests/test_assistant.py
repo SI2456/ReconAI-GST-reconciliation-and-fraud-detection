@@ -74,6 +74,14 @@ def _ctx(user_id: str, today: date = date(2026, 5, 10)):
     return AssistantContext(db=db, user=db.get(User, user_id), today=today)
 
 
+@pytest.fixture(autouse=True)
+def _fresh_gemini_speed_stats(monkeypatch):
+    """Each test starts without remembered model response times."""
+    from app.services import assistant
+
+    monkeypatch.setattr(assistant, "_latency", {})
+
+
 # ── the data tools ───────────────────────────────────────────────────────────────
 
 def test_tools_only_see_the_officers_own_clients(officers):
@@ -240,6 +248,7 @@ def test_gemini_adapter_round_trip(monkeypatch):
 
     monkeypatch.setattr(assistant.settings, "gemini_api_key", "test-key")
     monkeypatch.setattr(assistant.settings, "gemini_chat_model", "gemini-test-flash")
+    monkeypatch.setattr(assistant, "_gemini_models_cache", ["gemini-test-flash"])
     sent = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -355,3 +364,94 @@ def test_gemini_gives_a_clear_message_when_every_model_is_busy(officers, monkeyp
     engine.client = httpx.Client(transport=httpx.MockTransport(handler))
     with pytest.raises(assistant.AssistantUnavailable, match="busy or slow right now"):
         assistant.ask(_ctx(officers.a_id), "How many clients?", engine=engine)
+
+
+def test_lite_models_are_tried_first(monkeypatch):
+    """Flash-lite answered in ~2 s in testing, full flash in 10-40 s: lite first, flash as fallback."""
+    import httpx
+    from app.services import assistant
+
+    listed = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite",
+              "gemini-3.8-flash-tts", "gemini-3-flash-preview", "gemini-flash-lite-latest", "gemini-omni-1.1-flash"]
+
+    def handler(request):
+        return httpx.Response(200, json={"models": [
+            {"name": f"models/{n}", "supportedGenerationMethods": ["generateContent"]} for n in listed]})
+
+    monkeypatch.setattr(assistant, "_gemini_models_cache", None)
+    monkeypatch.setattr(assistant.settings, "gemini_chat_model", "")
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert assistant._gemini_models(client) == ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash"]
+    # A model pinned in GEMINI_CHAT_MODEL goes first, the others stay as fallbacks.
+    monkeypatch.setattr(assistant.settings, "gemini_chat_model", "gemini-3.8-flash")
+    assert assistant._gemini_models(client)[0] == "gemini-3.8-flash"
+    assert assistant._thinking_config("gemini-3.5-flash-lite") == {"thinkingConfig": {"thinkingLevel": "minimal"}}
+
+
+def test_quota_and_retired_models_go_straight_to_the_next_model(monkeypatch):
+    import httpx
+    from app.services import assistant
+
+    monkeypatch.setattr(assistant.settings, "gemini_api_key", "test-key")
+    monkeypatch.setattr(assistant.settings, "gemini_chat_model", "")
+    monkeypatch.setattr(assistant, "_gemini_models_cache", ["gemini-retired-lite", "gemini-quota-lite", "gemini-3.8-flash"])
+    monkeypatch.setattr(assistant.time, "sleep", lambda _: None)
+    tried = []
+
+    def handler(request):
+        model = request.url.path.split("/models/")[1].split(":")[0]
+        tried.append(model)
+        if model == "gemini-retired-lite":
+            return httpx.Response(404, json={"error": {"message": "This model is no longer available"}})
+        if model == "gemini-quota-lite":
+            return httpx.Response(429, json={"error": {"message": "You exceeded your current quota"}})
+        return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": "ok"}]}}]})
+
+    engine = assistant._Gemini()
+    engine.client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert engine.step("system", engine.start([], "q"))[0] == "ok"
+    assert tried == ["gemini-retired-lite", "gemini-quota-lite", "gemini-3.8-flash"]  # no retries on 404/429
+    assert "gemini-retired-lite" not in assistant._gemini_models_cache  # not tried again next time
+
+
+def test_unsupported_thinking_setting_is_retried_without_it(monkeypatch):
+    import json as _json
+
+    import httpx
+    from app.services import assistant
+
+    monkeypatch.setattr(assistant.settings, "gemini_api_key", "test-key")
+    monkeypatch.setattr(assistant, "_gemini_models_cache", ["gemini-3.8-flash"])
+    monkeypatch.setattr(assistant.settings, "gemini_chat_model", "")
+    bodies = []
+
+    def handler(request):
+        body = _json.loads(request.content)
+        bodies.append(body["generationConfig"])
+        if "thinkingConfig" in body["generationConfig"]:
+            return httpx.Response(400, json={"error": {"message": "Thinking level LOW is not supported for this model."}})
+        return httpx.Response(200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": "ok"}]}}]})
+
+    engine = assistant._Gemini()
+    engine.client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert engine.step("system", engine.start([], "q"))[0] == "ok"
+    assert "thinkingConfig" in bodies[0] and "thinkingConfig" not in bodies[1]
+
+
+def test_the_fastest_model_recently_is_tried_first(monkeypatch):
+    from app.services import assistant
+
+    monkeypatch.setattr(assistant.settings, "gemini_chat_model", "")
+    monkeypatch.setattr(assistant, "_gemini_models_cache", ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash"])
+    engine = assistant._Gemini()
+    first = lambda: engine._attempts()[0][0]  # noqa: E731
+    assert first() == "gemini-3.5-flash-lite"           # nothing measured yet: discovery order
+    assistant._record_latency("gemini-3.5-flash-lite", 8.0)
+    assistant._record_latency("gemini-3.1-flash-lite", 1.2)
+    assert first() == "gemini-3.1-flash-lite"           # it was faster just now
+    assistant._record_latency("gemini-3.1-flash-lite", assistant._LATENCY_PENALTY)  # then overloaded
+    assert first() == "gemini-3.5-flash-lite"
+    # Old measurements expire, so a model that was slow gets another chance later.
+    clock = assistant.time.monotonic() + assistant._LATENCY_TTL + 1
+    monkeypatch.setattr(assistant.time, "monotonic", lambda: clock)
+    assert first() == "gemini-3.5-flash-lite" and assistant._expected_latency("gemini-3.1-flash-lite") == 2.0
